@@ -7,6 +7,8 @@ import { CONGREGACOES } from "@/domain/congregacoes";
 import { formatarData, formatarDataHora } from "@/domain/formatacao";
 import type { Operacao } from "@/domain/operacoes";
 import type { Chamada, Obreiro } from "@/domain/types";
+import type { ResultadoEnvio } from "@/hooks/useChamadaSincronizada";
+import { gerarId } from "@/lib/id";
 import { Botao } from "@/components/ui/Botao";
 import { CardCongregacao } from "./CardCongregacao";
 import { PainelResumo } from "./PainelResumo";
@@ -17,6 +19,8 @@ interface TelaChamadaProps {
   chamada: Chamada;
   obreiros: Obreiro[];
   enviar: (op: Operacao) => void;
+  /** Envio que aguarda a resposta do servidor (para mostrar erros de cadastro). */
+  enviarAguardando: (op: Operacao) => Promise<ResultadoEnvio>;
   aoVoltarInicio: () => void;
   aoRevisar: () => void;
   aoFinalizar: () => void;
@@ -29,6 +33,7 @@ export function TelaChamada({
   chamada,
   obreiros,
   enviar,
+  enviarAguardando,
   aoVoltarInicio,
   aoRevisar,
   aoFinalizar,
@@ -78,6 +83,19 @@ export function TelaChamada({
     (congregacaoId: string, cargo: CargoId, valor: number) =>
       enviar({ tipo: "definir", chamadaId, congregacaoId, cargo, valor }),
     [enviar, chamadaId],
+  );
+  const cadastrarPresente = useCallback(
+    async (congregacaoId: string, nome: string, cargo: CargoId): Promise<string | null> => {
+      const obreiroId = gerarId();
+      const r = await enviarAguardando({
+        tipo: "cadastrar_obreiro",
+        obreiro: { id: obreiroId, nome, cargo, congregacaoId },
+      });
+      if (!r.ok) return r.erro;
+      enviar({ tipo: "marcar_presenca", chamadaId, obreiroId, presente: true });
+      return null;
+    },
+    [enviar, enviarAguardando, chamadaId],
   );
   const marcarPresenca = useCallback(
     (obreiroId: string, presente: boolean) =>
@@ -192,6 +210,7 @@ export function TelaChamada({
                 bloqueado={finalizada}
                 aoAlternar={alternar}
                 aoMarcarPresenca={marcarPresenca}
+                aoCadastrarPresente={cadastrarPresente}
                 aoAjustar={ajustar}
                 aoDefinir={definir}
               />

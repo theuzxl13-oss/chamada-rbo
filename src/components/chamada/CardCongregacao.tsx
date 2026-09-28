@@ -6,6 +6,7 @@ import type { LinhaCongregacao } from "@/domain/calculos";
 import { nomeContem, ordenarPorNome } from "@/domain/obreiros";
 import type { Obreiro } from "@/domain/types";
 import { ContadorCargo } from "./ContadorCargo";
+import { FormCadastroRapido } from "./FormCadastroRapido";
 import { LinhaPresenca } from "./LinhaPresenca";
 
 interface CardCongregacaoProps {
@@ -18,6 +19,8 @@ interface CardCongregacaoProps {
   aoMarcarPresenca: (obreiroId: string, presente: boolean) => void;
   aoAjustar: (congregacaoId: string, cargo: CargoId, delta: number) => void;
   aoDefinir: (congregacaoId: string, cargo: CargoId, valor: number) => void;
+  /** Cadastra o obreiro nesta congregação e marca presente. Devolve erro ou null. */
+  aoCadastrarPresente: (congregacaoId: string, nome: string, cargo: CargoId) => Promise<string | null>;
 }
 
 const ABREVIACOES: Record<CargoId, string> = {
@@ -38,10 +41,11 @@ export const CardCongregacao = memo(function CardCongregacao({
   aoMarcarPresenca,
   aoAjustar,
   aoDefinir,
+  aoCadastrarPresente,
 }: CardCongregacaoProps) {
   const { total } = linha;
   const [filtro, setFiltro] = useState("");
-  const [mostrarAvulsos, setMostrarAvulsos] = useState(false);
+  const [cadastrando, setCadastrando] = useState(false);
 
   // Lista A–Z: cadastrados desta congregação + presentes que saíram do cadastro depois de marcados.
   const pessoas = useMemo(() => {
@@ -54,7 +58,6 @@ export const CardCongregacao = memo(function CardCongregacao({
 
   const presentesIds = useMemo(() => new Set(linha.presentes.map((p) => p.obreiroId)), [linha.presentes]);
   const visiveis = filtro ? pessoas.filter((p) => nomeContem(p.nome, filtro)) : pessoas;
-  const avulsosAbertos = mostrarAvulsos || linha.totalAvulsos > 0;
 
   return (
     <section
@@ -68,7 +71,6 @@ export const CardCongregacao = memo(function CardCongregacao({
         aria-expanded={aberta}
         className="flex w-full items-center gap-3 px-4 py-3.5 text-left active:bg-slate-50"
       >
-
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[17px] font-bold text-slate-900 uppercase">{linha.nome}</span>
           <span className="block text-[13px] font-medium text-slate-500">
@@ -97,8 +99,8 @@ export const CardCongregacao = memo(function CardCongregacao({
 
           {pessoas.length === 0 ? (
             <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-500">
-              Nenhum obreiro cadastrado nesta congregação. Use &quot;Cadastro de obreiros&quot; na tela inicial,
-              ou conte os presentes em &quot;Não cadastrados&quot; abaixo.
+              Nenhum obreiro cadastrado nesta congregação ainda. Use o botão abaixo para cadastrar
+              quem está presente.
             </p>
           ) : (
             <>
@@ -129,38 +131,47 @@ export const CardCongregacao = memo(function CardCongregacao({
             </>
           )}
 
-          {/* ------------------------------------------------ não cadastrados */}
-          <div className="mt-4">
-            {avulsosAbertos ? (
-              <>
-                <h3 className="px-1 text-xs font-bold tracking-widest text-slate-500 uppercase">
-                  Não cadastrados (visitantes / novos)
-                </h3>
-                <div className="divide-y divide-slate-100 px-1">
-                  {CARGOS_CHAMADA.map((cargo) => (
-                    <ContadorCargo
-                      key={cargo}
-                      rotulo={CARGOS[cargo].plural}
-                      valor={linha.avulsos[cargo]}
-                      bloqueado={bloqueado}
-                      aoAjustar={(delta) => aoAjustar(linha.id, cargo, delta)}
-                      aoDefinir={(valor) => aoDefinir(linha.id, cargo, valor)}
-                    />
-                  ))}
-                </div>
-              </>
-            ) : (
-              !bloqueado && (
+          {/* ------------------------------------------------ cadastrar na hora */}
+          {!bloqueado && (
+            <div className="mt-3">
+              {cadastrando ? (
+                <FormCadastroRapido
+                  congregacaoNome={linha.nome}
+                  aoCadastrar={(nome, cargo) => aoCadastrarPresente(linha.id, nome, cargo)}
+                  aoFechar={() => setCadastrando(false)}
+                />
+              ) : (
                 <button
                   type="button"
-                  onClick={() => setMostrarAvulsos(true)}
-                  className="min-h-11 w-full rounded-xl border border-dashed border-slate-300 text-[15px] font-semibold text-slate-600 active:bg-slate-50"
+                  onClick={() => setCadastrando(true)}
+                  className="min-h-12 w-full rounded-xl border-2 border-dashed border-slate-300 text-[15px] font-semibold text-slate-700 active:bg-slate-50"
                 >
-                  + Contar presentes não cadastrados
+                  + Cadastrar obreiro e marcar presente
                 </button>
-              )
-            )}
-          </div>
+              )}
+            </div>
+          )}
+
+          {/* Contagem por quantidade de versões anteriores: só aparece se já houver valores. */}
+          {linha.totalAvulsos > 0 && (
+            <div className="mt-4">
+              <h3 className="px-1 text-xs font-bold tracking-widest text-slate-500 uppercase">
+                Contados sem cadastro
+              </h3>
+              <div className="divide-y divide-slate-100 px-1">
+                {CARGOS_CHAMADA.map((cargo) => (
+                  <ContadorCargo
+                    key={cargo}
+                    rotulo={CARGOS[cargo].plural}
+                    valor={linha.avulsos[cargo]}
+                    bloqueado={bloqueado}
+                    aoAjustar={(delta) => aoAjustar(linha.id, cargo, delta)}
+                    aoDefinir={(valor) => aoDefinir(linha.id, cargo, valor)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* ------------------------------------------------ totais */}
           <div className="mt-3 rounded-xl bg-marca-50 px-4 py-3">

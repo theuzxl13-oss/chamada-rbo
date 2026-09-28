@@ -258,6 +258,7 @@ export function AppChamada() {
           chamada={chamada}
           obreiros={sync.obreiros}
           enviar={enviarContagem}
+          enviarAguardando={enviar}
           aoVoltarInicio={() => setTela("inicio")}
           aoRevisar={() => setTela("revisao")}
           aoFinalizar={iniciarFinalizacao}
