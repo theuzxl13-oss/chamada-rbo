@@ -9,9 +9,10 @@ import { CARGOS, CARGOS_HIERARQUIA, type CargoId } from "@/domain/cargos";
 import { calcularResumo } from "@/domain/calculos";
 import { formatarData } from "@/domain/formatacao";
 import { useChamadaSincronizada } from "@/hooks/useChamadaSincronizada";
+import { FaixaLogo } from "@/components/ui/FaixaLogo";
 
 const CORES_CARGO: Record<CargoId, string> = {
-  pastor: "border-t-marca-700",
+  pastor: "border-t-zinc-900",
   evangelista: "border-t-sky-600",
   presbitero: "border-t-indigo-500",
   diacono: "border-t-emerald-600",
@@ -45,7 +46,9 @@ export function PainelTotais() {
   const { reuniao } = chamada;
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-7xl flex-col gap-4 px-4 py-4 sm:gap-6 sm:px-6 sm:py-6">
+    <>
+    <FaixaLogo compacta />
+    <main className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:gap-6 sm:px-6 sm:py-6">
       {/* Cabeçalho */}
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -164,6 +167,7 @@ export function PainelTotais() {
         )}
       </section>
     </main>
+    </>
   );
 }
 
@@ -196,11 +200,14 @@ function IndicadorAoVivo({
 
 function Centro({ texto, children }: { texto: string; children?: React.ReactNode }) {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center p-6 text-center">
+    <>
+    <FaixaLogo />
+    <main className="flex min-h-[70dvh] flex-col items-center justify-center p-6 text-center">
       <p className="text-sm font-bold tracking-[0.2em] text-slate-500 uppercase">Painel de totais</p>
       <h1 className="mt-1 text-3xl font-extrabold text-marca-700 uppercase">Reunião de Obreiros</h1>
       <p className="mt-4 text-lg text-slate-600">{texto}</p>
       {children}
     </main>
+    </>
   );
 }

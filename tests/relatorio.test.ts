@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { CARGOS_HIERARQUIA } from "@/domain/cargos";
 import { calcularResumo } from "@/domain/calculos";
@@ -48,7 +48,11 @@ describe("relatório PDF", () => {
   it("gera PDF A4 com todas as 33 congregações, lista A–Z e os mesmos totais da tela", async () => {
     const chamada = chamadaCompleta();
     const resumo = calcularResumo(chamada);
-    const doc = await montarRelatorioPdf(chamada);
+    const logo = {
+      dataUrl: `data:image/png;base64,${readFileSync("public/logo-preta.png").toString("base64")}`,
+      proporcao: 1152 / 414,
+    };
+    const doc = await montarRelatorioPdf(chamada, logo);
 
     expect(doc.getNumberOfPages()).toBeGreaterThan(2);
     const { width, height } = doc.internal.pageSize;

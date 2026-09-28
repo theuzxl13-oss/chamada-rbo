@@ -2,11 +2,13 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --color-marca-50: #eef3f9;
-  --color-marca-100: #d9e3f0;
-  --color-marca-600: #2b4f7e;
-  --color-marca-700: #1e3a5f;
-  --color-marca-800: #172d4a;
+  /* Identidade da logo: preto e branco (grafite) */
+  --color-marca-50: #f4f4f5;
+  --color-marca-100: #d4d4d8;
+  --color-marca-600: #3f3f46;
+  --color-marca-700: #18181b;
+  --color-marca-800: #09090b;
+  --color-faixa: #111111;
 }
 
 html {
@@ -14,7 +16,7 @@ html {
 }
 
 body {
-  background: #f3f5f8;
+  background: #f4f4f5;
   color: #1e2228;
 }
 

@@ -17,6 +17,7 @@ import { FormNovaReuniao } from "./inicio/FormNovaReuniao";
 import { TelaInicial } from "./inicio/TelaInicial";
 import { TelaRevisao } from "./revisao/TelaRevisao";
 import { Botao } from "./ui/Botao";
+import { FaixaLogo } from "./ui/FaixaLogo";
 import { AcoesModal, Modal } from "./ui/Modal";
 
 type Tela = "inicio" | "nova" | "chamada" | "revisao" | "cadastro";
@@ -226,6 +227,7 @@ export function AppChamada() {
   return (
     <>
       <AvisoConexao conexao={sync.conexao} pendentes={sync.alteracoesPendentes} />
+      <FaixaLogo compacta={telaEfetiva !== "inicio"} />
 
       {telaEfetiva === "inicio" && (
         <TelaInicial

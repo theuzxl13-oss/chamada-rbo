@@ -25,12 +25,13 @@ export class ErroRelatorio extends Error {
 type RGB = [number, number, number];
 
 const COR = {
-  primaria: [30, 58, 95] as RGB,
-  primariaClara: [232, 238, 246] as RGB,
+  // Identidade da logo: preto/grafite
+  primaria: [24, 24, 27] as RGB,
+  primariaClara: [241, 241, 243] as RGB,
   texto: [30, 34, 40] as RGB,
   suave: [110, 116, 125] as RGB,
-  linha: [205, 211, 219] as RGB,
-  zebra: [247, 249, 251] as RGB,
+  linha: [212, 212, 216] as RGB,
+  zebra: [250, 250, 250] as RGB,
 };
 
 // Medidas em milímetros (A4 = 210 × 297)
@@ -46,14 +47,46 @@ const LARGURA_UTIL = LARGURA - MARGEM * 2;
  * (nunca gera um PDF com números divergentes).
  */
 export async function gerarRelatorioPdf(chamada: Chamada): Promise<string> {
-  const doc = await montarRelatorioPdf(chamada);
+  const doc = await montarRelatorioPdf(chamada, await carregarLogo());
   const nome = nomeArquivoPdf(chamada.reuniao.data);
   doc.save(nome);
   return nome;
 }
 
+/** Logo da igreja (versão preta, fundo transparente) em data URL. Sem logo, o PDF sai sem ela. */
+async function carregarLogo(): Promise<LogoPdf | null> {
+  try {
+    const resp = await fetch("/logo-preta.png");
+    if (!resp.ok) return null;
+    const blob = await resp.blob();
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const leitor = new FileReader();
+      leitor.onload = () => resolve(String(leitor.result));
+      leitor.onerror = () => reject(leitor.error);
+      leitor.readAsDataURL(blob);
+    });
+    const proporcao = await new Promise<number>((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(img.naturalWidth / img.naturalHeight);
+      img.onerror = () => resolve(PROPORCAO_LOGO_PADRAO);
+      img.src = dataUrl;
+    });
+    return { dataUrl, proporcao };
+  } catch {
+    return null;
+  }
+}
+
+/** Logo em data URL (PNG) e sua proporção largura/altura. */
+export interface LogoPdf {
+  dataUrl: string;
+  proporcao: number;
+}
+
+const PROPORCAO_LOGO_PADRAO = 1152 / 414;
+
 /** Monta o documento do relatório sem baixá-lo. */
-export async function montarRelatorioPdf(chamada: Chamada): Promise<JsPDF> {
+export async function montarRelatorioPdf(chamada: Chamada, logo: LogoPdf | null = null): Promise<JsPDF> {
   const validacao = validarChamada(chamada);
   if (!validacao.ok) throw new ErroRelatorio(validacao.erros);
 
@@ -205,6 +238,13 @@ export async function montarRelatorioPdf(chamada: Chamada): Promise<JsPDF> {
 
   // ======================================================= CAPA / CABEÇALHO
   let y = TOPO_CONTEUDO + 4;
+  if (logo) {
+    // Primeira página: logo grande e centralizada no topo
+    const altura = 20;
+    const largura = altura * logo.proporcao;
+    doc.addImage(logo.dataUrl, "PNG", (LARGURA - largura) / 2, 10, largura, altura, "logo", "FAST");
+    y = 42;
+  }
   doc.setTextColor(...COR.primaria);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
@@ -390,7 +430,7 @@ export async function montarRelatorioPdf(chamada: Chamada): Promise<JsPDF> {
     y,
   );
 
-  desenharCabecalhoERodape(doc, dataFormatada, geradoEm);
+  desenharCabecalhoERodape(doc, dataFormatada, geradoEm, logo);
   return doc;
 }
 
@@ -405,20 +445,29 @@ function linhaTabelaCongregacao(l: LinhaCongregacao, indice: number): RowInput {
   return celulas;
 }
 
-function desenharCabecalhoERodape(doc: JsPDF, data: string, geradoEm: string) {
+function desenharCabecalhoERodape(doc: JsPDF, data: string, geradoEm: string, logo: LogoPdf | null) {
   const total = doc.getNumberOfPages();
   for (let p = 1; p <= total; p++) {
     doc.setPage(p);
 
-    // Cabeçalho
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.setTextColor(...COR.primaria);
-    doc.text("REUNIÃO DE OBREIROS — RELATÓRIO DE PRESENÇA", MARGEM, 13);
-    doc.text(`Data da reunião: ${data}`, LARGURA - MARGEM, 13, { align: "right" });
-    doc.setDrawColor(...COR.primaria);
-    doc.setLineWidth(0.6);
-    doc.line(MARGEM, 16, LARGURA - MARGEM, 16);
+    // Cabeçalho (na 1ª página com logo, o topo já traz a logo grande)
+    if (!(logo && p === 1)) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(...COR.primaria);
+      if (logo) {
+        const altura = 8;
+        doc.addImage(logo.dataUrl, "PNG", MARGEM, 6.5, altura * logo.proporcao, altura, "logo", "FAST");
+        doc.text("RELATÓRIO DE PRESENÇA", LARGURA - MARGEM, 10, { align: "right" });
+        doc.text(`Reunião de Obreiros — ${data}`, LARGURA - MARGEM, 14, { align: "right" });
+      } else {
+        doc.text("REUNIÃO DE OBREIROS — RELATÓRIO DE PRESENÇA", MARGEM, 13);
+        doc.text(`Data da reunião: ${data}`, LARGURA - MARGEM, 13, { align: "right" });
+      }
+      doc.setDrawColor(...COR.primaria);
+      doc.setLineWidth(0.6);
+      doc.line(MARGEM, 16.5, LARGURA - MARGEM, 16.5);
+    }
 
     // Rodapé
     const yRodape = ALTURA - 12;
