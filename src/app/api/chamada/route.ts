@@ -7,13 +7,21 @@ export const dynamic = "force-dynamic";
 
 /** Estado atual da chamada compartilhada. */
 export async function GET() {
-  const estado = await obterServico().obterEstado();
-  return NextResponse.json(estado, { headers: { "Cache-Control": "no-store" } });
+  try {
+    const estado = await obterServico().obterEstado();
+    return NextResponse.json(estado, { headers: { "Cache-Control": "no-store" } });
+  } catch (erro) {
+    // Mostra o motivo (ex.: variável do Supabase ausente ou chave inválida) sem expor valores.
+    console.error("[chamada] Erro ao ler o estado:", erro);
+    return NextResponse.json(
+      { ok: false, erro: erro instanceof Error ? erro.message : "Erro ao ler os dados." },
+      { status: 500, headers: { "Cache-Control": "no-store" } },
+    );
+  }
 }
 
 /** Aplica uma operação: { id: string, op: Operacao } */
 export async function POST(request: Request) {
-  const servico = obterServico();
   let corpo: unknown;
   try {
     corpo = await request.json();
@@ -32,10 +40,13 @@ export async function POST(request: Request) {
   try {
     if (!opId) throw new ErroOperacao("DADOS_INVALIDOS", "Operação sem identificador.");
     const op = interpretarOperacao((corpo as { op?: unknown }).op);
-    const estado = await servico.executar(opId, op);
+    const estado = await obterServico().executar(opId, op);
     return NextResponse.json({ ok: true, estado });
   } catch (erro) {
-    const estado = await servico.obterEstado();
+    // Devolve o estado atual (quando disponível) para o aparelho se corrigir.
+    const estado = await obterServico()
+      .obterEstado()
+      .catch(() => undefined);
     if (erro instanceof ErroOperacao) {
       return NextResponse.json(
         { ok: false, codigo: erro.codigo, erro: erro.message, estado },
@@ -44,7 +55,12 @@ export async function POST(request: Request) {
     }
     console.error("[chamada] Erro inesperado:", erro);
     return NextResponse.json(
-      { ok: false, codigo: "ERRO_INTERNO", erro: "Erro inesperado no servidor.", estado },
+      {
+        ok: false,
+        codigo: "ERRO_INTERNO",
+        erro: erro instanceof Error ? erro.message : "Erro inesperado no servidor.",
+        estado,
+      },
       { status: 500 },
     );
   }
