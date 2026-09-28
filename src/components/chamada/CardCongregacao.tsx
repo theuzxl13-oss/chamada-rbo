@@ -90,30 +90,32 @@ export const CardCongregacao = memo(function CardCongregacao({
       {aberta && (
         <div className="border-t border-slate-100 px-3 pt-3 pb-4 sm:px-4">
           {/* ------------------------------------------------ presença por nome */}
-          <div className="mb-2 flex items-baseline justify-between gap-2 px-1">
-            <h3 className="text-xs font-bold tracking-widest text-slate-500 uppercase">Obreiros cadastrados</h3>
-            <span className="tabular text-sm font-semibold text-slate-600">
-              {linha.presentes.length} de {pessoas.length} presentes
-            </span>
-          </div>
-
-          {pessoas.length === 0 ? (
-            <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-500">
-              Nenhum obreiro cadastrado nesta congregação ainda. Use o botão abaixo para cadastrar
-              quem está presente.
-            </p>
-          ) : (
+          {pessoas.length > 0 && (
             <>
-              {pessoas.length > 12 && (
-                <input
-                  type="search"
-                  value={filtro}
-                  onChange={(e) => setFiltro(e.target.value)}
-                  placeholder={`Buscar nome em ${linha.nome}`}
-                  aria-label={`Buscar nome em ${linha.nome}`}
-                  className="mb-2 h-11 w-full rounded-xl border border-slate-300 px-3 text-base focus:border-marca-600 focus:outline-none"
-                />
+              <div className="mb-2 flex items-baseline justify-between gap-2 px-1">
+                <h3 className="text-xs font-bold tracking-widest text-slate-500 uppercase">Obreiros cadastrados</h3>
+                <span className="tabular text-sm font-semibold text-slate-600">
+                  {linha.presentes.length} de {pessoas.length} presentes
+                </span>
+              </div>
+
+              {pessoas.length > 5 && (
+                <div className="relative mb-2">
+                  <span aria-hidden className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-base">
+                    🔎
+                  </span>
+                  <input
+                    type="search"
+                    value={filtro}
+                    onChange={(e) => setFiltro(e.target.value)}
+                    placeholder="Pesquisar nome"
+                    aria-label={`Pesquisar nome em ${linha.nome}`}
+                    autoComplete="off"
+                    className="h-12 w-full rounded-xl border border-slate-300 bg-white pr-3 pl-10 text-base focus:border-marca-600 focus:ring-2 focus:ring-marca-100 focus:outline-none"
+                  />
+                </div>
               )}
+
               <ul className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200">
                 {visiveis.map((p) => (
                   <li key={p.id}>
@@ -126,7 +128,11 @@ export const CardCongregacao = memo(function CardCongregacao({
                     />
                   </li>
                 ))}
-                {visiveis.length === 0 && <li className="p-3 text-sm text-slate-500">Nenhum nome encontrado.</li>}
+                {visiveis.length === 0 && (
+                  <li className="p-3 text-sm text-slate-500">
+                    Nenhum nome encontrado com &quot;{filtro}&quot;.
+                  </li>
+                )}
               </ul>
             </>
           )}
@@ -175,7 +181,7 @@ export const CardCongregacao = memo(function CardCongregacao({
 
           {/* ------------------------------------------------ totais */}
           <div className="mt-3 rounded-xl bg-marca-50 px-4 py-3">
-            <div className="grid grid-cols-3 gap-x-3 gap-y-1 text-[13px] text-marca-700 sm:grid-cols-6">
+            <div className="grid grid-cols-3 gap-x-4 gap-y-1 text-[13px] text-marca-700">
               {CARGOS_HIERARQUIA.map((cargo) => (
                 <span key={cargo} className="flex justify-between gap-1">
                   <span>{ABREVIACOES[cargo]}</span>
