@@ -1,0 +1,38 @@
+# dependências
+/node_modules
+/.pnp
+.pnp.*
+
+# Next.js
+/.next/
+/out/
+next-env.d.ts
+*.tsbuildinfo
+
+# produção
+/build
+
+# dados temporários da chamada atual (gerados pelo servidor local)
+/data/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ambiente
+.env
+.env*.local
+
+# Vercel
+.vercel
+
+# sistema
+.DS_Store
+Thumbs.db
+
+# PDFs gerados localmente
+*.pdf
+
+# configuração local do editor/assistente
+/.claude/

@@ -1,0 +1,22 @@
+# Configuração de publicação no Render (https://render.com)
+# Render → New → Blueprint → selecione este repositório.
+services:
+  - type: web
+    name: chamada-rbo
+    runtime: node
+    plan: free
+    region: virginia # mais próxima do Supabase de São Paulo entre as regiões do Render
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Valores pedidos na criação (copie do Supabase → Project Settings → API)
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-marca-50: #eef3f9;
+  --color-marca-100: #d9e3f0;
+  --color-marca-600: #2b4f7e;
+  --color-marca-700: #1e3a5f;
+  --color-marca-800: #172d4a;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: #f3f5f8;
+  color: #1e2228;
+}
+
+/* Toques rápidos sem atraso/zoom de duplo toque no celular */
+button,
+input,
+a {
+  touch-action: manipulation;
+}
+
+/* Remove setas dos campos numéricos */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
