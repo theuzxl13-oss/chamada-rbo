@@ -3,17 +3,13 @@
 import { useCallback, useMemo, useState } from "react";
 import type { CargoId } from "@/domain/cargos";
 import { calcularResumo } from "@/domain/calculos";
-import { CONGREGACOES, buscarCongregacao, filtrarCongregacoes } from "@/domain/congregacoes";
-import { nomeContem, ordenarPorNome } from "@/domain/obreiros";
+import { CONGREGACOES } from "@/domain/congregacoes";
 import { formatarData, formatarDataHora } from "@/domain/formatacao";
 import type { Operacao } from "@/domain/operacoes";
 import type { Chamada, Obreiro } from "@/domain/types";
 import { Botao } from "@/components/ui/Botao";
 import { CardCongregacao } from "./CardCongregacao";
-import { LinhaPresenca } from "./LinhaPresenca";
 import { PainelResumo } from "./PainelResumo";
-
-type Filtro = "todas" | "pendentes" | "conferidas";
 
 const SEM_OBREIROS: Obreiro[] = [];
 
@@ -40,8 +36,6 @@ export function TelaChamada({
   aoReabrir,
   aoNovaReuniao,
 }: TelaChamadaProps) {
-  const [busca, setBusca] = useState("");
-  const [filtro, setFiltro] = useState<Filtro>("todas");
   const [abertas, setAbertas] = useState<Set<string>>(() => new Set());
 
   const resumo = useMemo(() => calcularResumo(chamada), [chamada]);
@@ -64,20 +58,7 @@ export function TelaChamada({
     return mapa;
   }, [obreiros]);
 
-  const visiveis = useMemo(() => {
-    return filtrarCongregacoes(busca).filter((c) => {
-      const conferida = linhasPorId.get(c.id)?.conferida ?? false;
-      if (filtro === "pendentes") return !conferida;
-      if (filtro === "conferidas") return conferida;
-      return true;
-    });
-  }, [busca, filtro, linhasPorId]);
 
-  // Busca também por nome de obreiro (a partir de 2 letras)
-  const obreirosEncontrados = useMemo(() => {
-    if (busca.trim().length < 2) return [];
-    return ordenarPorNome(obreiros.filter((o) => nomeContem(o.nome, busca))).slice(0, 30);
-  }, [busca, obreiros]);
 
   const alternar = useCallback((id: string) => {
     setAbertas((atual) => {
@@ -103,27 +84,6 @@ export function TelaChamada({
       enviar({ tipo: "marcar_presenca", chamadaId, obreiroId, presente }),
     [enviar, chamadaId],
   );
-  const marcarConferida = useCallback(
-    (congregacaoId: string, conferida: boolean) => {
-      enviar({ tipo: "marcar_conferida", chamadaId, congregacaoId, conferida });
-      // Ao concluir, fecha o card para seguir para a próxima congregação.
-      if (conferida) {
-        setAbertas((atual) => {
-          const nova = new Set(atual);
-          nova.delete(congregacaoId);
-          return nova;
-        });
-      }
-    },
-    [enviar, chamadaId],
-  );
-
-  const contagemFiltro: Record<Filtro, number> = {
-    todas: CONGREGACOES.length,
-    pendentes: resumo.naoConferidas,
-    conferidas: resumo.conferidas,
-  };
-
   return (
     <div className="pb-28">
       {/* Barra fixa com o resumo sempre visível */}
@@ -142,9 +102,9 @@ export function TelaChamada({
             <p className="text-xs text-slate-500">{formatarData(reuniao.data)}</p>
           </div>
           <div className="text-right leading-tight">
-            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">Conferidas</p>
-            <p className="tabular text-base font-bold text-emerald-700">
-              {resumo.conferidas}/{resumo.cadastradas}
+            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">Com presença</p>
+            <p className="tabular text-base font-bold text-slate-700">
+              {resumo.comPresenca}/{resumo.cadastradas}
             </p>
           </div>
           <a
@@ -209,88 +169,21 @@ export function TelaChamada({
 
         <PainelResumo resumo={resumo} />
 
-        {/* Busca e filtros */}
-        <div className="space-y-2">
-          <div className="relative">
-            <span aria-hidden className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-lg">
-              🔎
-            </span>
-            <input
-              type="search"
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar congregação ou nome"
-              aria-label="Buscar congregação ou nome"
-              className="h-13 w-full rounded-2xl border border-slate-300 bg-white pr-4 pl-12 text-base shadow-sm focus:border-marca-600 focus:ring-2 focus:ring-marca-100 focus:outline-none"
-            />
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {(
-              [
-                ["todas", "Todas"],
-                ["pendentes", "Não conferidas"],
-                ["conferidas", "Conferidas"],
-              ] as [Filtro, string][]
-            ).map(([valor, rotulo]) => (
-              <button
-                key={valor}
-                type="button"
-                onClick={() => setFiltro(valor)}
-                className={`min-h-10 shrink-0 rounded-full px-4 text-sm font-semibold ${
-                  filtro === valor
-                    ? "bg-marca-700 text-white"
-                    : "border border-slate-300 bg-white text-slate-700"
-                }`}
-              >
-                {rotulo} ({contagemFiltro[valor]})
-              </button>
-            ))}
-            {abertas.size > 0 && (
-              <button
-                type="button"
-                onClick={() => setAbertas(new Set())}
-                className="ml-auto min-h-10 shrink-0 rounded-full px-3 text-sm font-semibold text-slate-600 underline"
-              >
-                Fechar todas
-              </button>
-            )}
-          </div>
+        <div className="flex min-h-10 items-center justify-between gap-2">
+          <h2 className="text-sm font-bold tracking-widest text-slate-500 uppercase">Congregações</h2>
+          {abertas.size > 0 && (
+            <button
+              type="button"
+              onClick={() => setAbertas(new Set())}
+              className="min-h-10 shrink-0 rounded-full px-3 text-sm font-semibold text-slate-600 underline"
+            >
+              Fechar todas
+            </button>
+          )}
         </div>
 
-        {obreirosEncontrados.length > 0 && (
-          <div>
-            <h2 className="mb-2 text-xs font-bold tracking-widest text-slate-500 uppercase">
-              Obreiros encontrados
-            </h2>
-            <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              {obreirosEncontrados.map((o) => {
-                const presente = Boolean(chamada.presentes[o.id]);
-                return (
-                  <li key={o.id}>
-                    <LinhaPresenca
-                      nome={o.nome}
-                      cargo={o.cargo}
-                      detalhe={buscarCongregacao(o.congregacaoId)?.nome}
-                      presente={presente}
-                      bloqueado={finalizada}
-                      aoAlternar={() => marcarPresenca(o.id, !presente)}
-                    />
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
-
-        {visiveis.length === 0 ? (
-          obreirosEncontrados.length === 0 && (
-          <p className="rounded-2xl bg-white p-6 text-center text-slate-500">
-            Nenhuma congregação ou nome encontrado.
-          </p>
-          )
-        ) : (
-          <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {visiveis.map((c) => (
+        <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {CONGREGACOES.map((c) => (
               <CardCongregacao
                 key={c.id}
                 linha={linhasPorId.get(c.id)!}
@@ -301,11 +194,9 @@ export function TelaChamada({
                 aoMarcarPresenca={marcarPresenca}
                 aoAjustar={ajustar}
                 aoDefinir={definir}
-                aoMarcarConferida={marcarConferida}
               />
             ))}
-          </div>
-        )}
+        </div>
       </main>
 
       {/* Ações principais fixas no rodapé */}

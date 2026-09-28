@@ -23,10 +23,7 @@ function chamadaCompleta(): Chamada {
 
   // Obreiros cadastrados e presenças em todas as 33 congregações (algumas vazias)
   CONGREGACOES.forEach((cong, i) => {
-    if (i % 7 === 3) {
-      if (i % 2 === 0) aplicar({ tipo: "marcar_conferida", chamadaId: "teste", congregacaoId: cong.id, conferida: true });
-      return;
-    }
+    if (i % 7 === 3) return; // algumas congregações sem presentes
     for (let k = 0; k < 4 + (i % 6); k++) {
       const oid = `${cong.id}-${k}`;
       aplicar({
@@ -43,7 +40,6 @@ function chamadaCompleta(): Chamada {
     if (i % 4 === 0) {
       aplicar({ tipo: "definir", chamadaId: "teste", congregacaoId: cong.id, cargo: "membro", valor: 2 });
     }
-    if (i % 5 !== 4) aplicar({ tipo: "marcar_conferida", chamadaId: "teste", congregacaoId: cong.id, conferida: true });
   });
   return d.chamada!;
 }

@@ -30,7 +30,6 @@ export type Operacao =
   | { tipo: "criar_reuniao"; dados: DadosReuniao; substituirChamadaId: string | null }
   | { tipo: "ajustar"; chamadaId: string; congregacaoId: string; cargo: CargoId; delta: number }
   | { tipo: "definir"; chamadaId: string; congregacaoId: string; cargo: CargoId; valor: number }
-  | { tipo: "marcar_conferida"; chamadaId: string; congregacaoId: string; conferida: boolean }
   | { tipo: "marcar_presenca"; chamadaId: string; obreiroId: string; presente: boolean }
   | { tipo: "finalizar"; chamadaId: string }
   | { tipo: "reabrir"; chamadaId: string }
@@ -72,7 +71,6 @@ export function ehOperacaoOtimista(op: Operacao): boolean {
   return (
     op.tipo === "ajustar" ||
     op.tipo === "definir" ||
-    op.tipo === "marcar_conferida" ||
     op.tipo === "marcar_presenca"
   );
 }
@@ -85,7 +83,7 @@ export function limitarQuantidade(valor: number): number {
 export function criarChamada(dados: DadosReuniao, ctx: ContextoOperacao): Chamada {
   const congregacoes: Record<string, RegistroCongregacao> = {};
   for (const c of CONGREGACOES) {
-    congregacoes[c.id] = { avulsos: contagemZerada(), conferida: false };
+    congregacoes[c.id] = { avulsos: contagemZerada() };
   }
   return {
     reuniao: {
@@ -134,7 +132,6 @@ function alterarRegistro(
   }
   const atual = chamada.congregacoes[congregacaoId] ?? {
     avulsos: contagemZerada(),
-    conferida: false,
   };
   return {
     ...chamada,
@@ -188,7 +185,7 @@ export function aplicarOperacao(
           "Já existe uma chamada em andamento. Confirme antes de iniciar uma nova reunião.",
         );
       }
-      // Nova reunião: tudo começa em ZERO, ninguém presente e nenhuma congregação conferida.
+      // Nova reunião: tudo começa em ZERO e ninguém presente.
       // O cadastro de obreiros é mantido.
       return comChamada(criarChamada(op.dados, ctx));
     }
@@ -215,14 +212,6 @@ export function aplicarOperacao(
           ...reg,
           avulsos: { ...reg.avulsos, [op.cargo]: limitarQuantidade(op.valor) },
         })),
-      );
-    }
-
-    case "marcar_conferida": {
-      const c = exigirChamada(chamada, op.chamadaId);
-      exigirEmAndamento(c);
-      return comChamada(
-        alterarRegistro(c, op.congregacaoId, (reg) => ({ ...reg, conferida: op.conferida })),
       );
     }
 
@@ -390,9 +379,7 @@ export function normalizarChamada(bruta: unknown): Chamada {
   for (const c of CONGREGACOES) {
     const reg = bruta.congregacoes[c.id];
     const avulsos = contagemZerada();
-    let conferida = false;
     if (ehObjeto(reg)) {
-      conferida = reg.conferida === true;
       // `contagem` = formato da versão anterior (sem cadastro nominal)
       const origem = ehObjeto(reg.avulsos) ? reg.avulsos : ehObjeto(reg.contagem) ? reg.contagem : null;
       if (origem) {
@@ -402,7 +389,7 @@ export function normalizarChamada(bruta: unknown): Chamada {
         }
       }
     }
-    congregacoes[c.id] = { avulsos, conferida };
+    congregacoes[c.id] = { avulsos };
   }
   const presentes: Record<string, PresencaNominal> = {};
   if (ehObjeto(bruta.presentes)) {
@@ -472,13 +459,6 @@ export function interpretarOperacao(bruta: unknown): Operacao {
         congregacaoId: exigirTexto(bruta.congregacaoId, "congregacaoId"),
         cargo: exigirCargo(bruta.cargo),
         valor: exigirNumero(bruta.valor, "valor"),
-      };
-    case "marcar_conferida":
-      return {
-        tipo: "marcar_conferida",
-        chamadaId: exigirTexto(bruta.chamadaId, "chamadaId"),
-        congregacaoId: exigirTexto(bruta.congregacaoId, "congregacaoId"),
-        conferida: bruta.conferida === true,
       };
     case "marcar_presenca":
       return {

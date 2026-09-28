@@ -46,26 +46,16 @@ pela internet, publique no Render (seção 8).
    **Toque no nome** para marcar presente (fica verde). Toque de novo para desmarcar.
 5. **Não cadastrados**: use "+ Contar presentes não cadastrados" e os botões **−** / **+**
    (ou digite o número) para visitantes ou pessoas ainda sem cadastro.
-6. A busca no topo encontra **congregações e nomes**: dá para marcar a presença direto no resultado.
-7. **✓ Concluir congregação** marca que a chamada dela terminou. Continua sendo possível corrigir depois.
-8. **Revisar chamada** mostra todas as congregações e destaca as ainda não conferidas.
-9. **Finalizar chamada** pede confirmação e gera o PDF.
+6. **Revisar chamada** mostra o total de cada congregação.
+7. **Finalizar chamada** pede confirmação e gera o PDF.
 
 ### Painel de totais (TV / projetor)
 
 Abra **`/painel`** (ex.: `https://chamada-rbo.onrender.com/painel`), ou use o botão **📊 Painel de totais** na
 tela inicial ou o quadro **Total 📊** no topo da chamada. Ele mostra, em números grandes e atualizando
 ao vivo, o **total geral**, o **total de cada cargo** (Pastores, Evangelistas, Presbíteros, Diáconos,
-Cooperadores e Membros), as congregações conferidas e o total de cada congregação.
+Cooperadores e Membros), as congregações com presença e o total de cada congregação.
 O painel só mostra os números; nada pode ser alterado nele. Use **⛶ Tela cheia** para projetar.
-
-Situação de cada congregação no relatório:
-
-| Situação | Significado |
-|---|---|
-| **Conferida** | A chamada foi feita e há presentes. |
-| **Conferida — 0 presentes** | A chamada foi feita e ninguém compareceu. |
-| **Não conferida** | Ninguém marcou a congregação como concluída (a chamada pode não ter sido feita). |
 
 ## 4. Como os dados são salvos
 
@@ -77,14 +67,14 @@ Situação de cada congregação no relatório:
 | Histórico das reuniões | **Os arquivos PDF.** O sistema não guarda reuniões antigas. |
 
 Atualizar a página ou fechar o navegador **não** apaga a chamada: ao voltar, a tela inicial mostra
-"Chamada em andamento" com a data, o total e as congregações conferidas.
+"Chamada em andamento" com a data, o total e as congregações com presença.
 
 Contagens feitas sem internet ficam guardadas no aparelho e são enviadas quando a conexão voltar
 (aparece uma faixa vermelha avisando).
 
 ## 5. Como gerar o PDF
 
-**Finalizar chamada** → (se houver congregações não conferidas, confirme) → **Finalizar e gerar PDF**.
+**Finalizar chamada** → **Finalizar e gerar PDF**.
 O arquivo é baixado com o nome `reuniao-obreiros-DD-MM-AAAA.pdf`.
 
 - O PDF só é gerado se os totais conferirem (soma por cargo = soma por congregação).
@@ -101,8 +91,8 @@ total por cargo, tabela por congregação, **lista geral de presentes (A–Z)**,
 
 - Se o PDF da reunião atual **ainda não foi gerado**, aparece o aviso com as opções
   **Voltar**, **Gerar PDF** e **Iniciar mesmo assim**.
-- A nova reunião começa com **todas as contagens em zero**, nenhum presente e as 33 congregações
-  como **não conferidas**. O **cadastro de obreiros é mantido**.
+- A nova reunião começa com **todas as contagens em zero** e nenhum presente.
+  O **cadastro de obreiros é mantido**.
 
 ## 7. Build de produção
 

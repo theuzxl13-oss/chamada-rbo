@@ -11,7 +11,6 @@ import {
   calcularResumo,
   validarChamada,
   type LinhaCongregacao,
-  type SituacaoCongregacao,
 } from "@/domain/calculos";
 import { formatarData, formatarDataHora, nomeArquivoPdf } from "@/domain/formatacao";
 import type { Chamada } from "@/domain/types";
@@ -31,8 +30,6 @@ const COR = {
   texto: [30, 34, 40] as RGB,
   suave: [110, 116, 125] as RGB,
   linha: [205, 211, 219] as RGB,
-  verde: [22, 120, 70] as RGB,
-  laranja: [180, 90, 10] as RGB,
   zebra: [247, 249, 251] as RGB,
 };
 
@@ -43,21 +40,6 @@ const MARGEM = 15;
 const TOPO_CONTEUDO = 28;
 const BASE_CONTEUDO = 20;
 const LARGURA_UTIL = LARGURA - MARGEM * 2;
-
-export function textoSituacao(s: SituacaoCongregacao): string {
-  switch (s) {
-    case "conferida":
-      return "Conferida";
-    case "conferida_sem_presenca":
-      return "Conferida — 0 presentes";
-    case "nao_conferida":
-      return "Não conferida";
-  }
-}
-
-function corSituacao(s: SituacaoCongregacao): RGB {
-  return s === "nao_conferida" ? COR.laranja : COR.verde;
-}
 
 /**
  * Gera e baixa o PDF. Lança `ErroRelatorio` se os totais não forem consistentes
@@ -156,16 +138,7 @@ export async function montarRelatorioPdf(chamada: Chamada): Promise<JsPDF> {
       alternateRowStyles: {},
       head: [
         [
-          { content: `CONGREGAÇÃO — ${l.nome.toUpperCase()}`, colSpan: 5, styles: { halign: "left", fontSize: 10 } },
-          {
-            content: textoSituacao(l.situacao),
-            colSpan: 2,
-            styles: {
-              halign: "right",
-              fontSize: 8,
-              textColor: l.situacao === "nao_conferida" ? [255, 205, 150] : [180, 235, 205],
-            },
-          },
+          { content: `CONGREGAÇÃO — ${l.nome.toUpperCase()}`, colSpan: 7, styles: { halign: "left", fontSize: 10 } },
         ],
         ...(semPresenca
           ? []
@@ -278,7 +251,7 @@ export async function montarRelatorioPdf(chamada: Chamada): Promise<JsPDF> {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.text(
-    `Congregações conferidas: ${resumo.conferidas} de ${resumo.cadastradas}`,
+    `Congregações com presença: ${resumo.comPresenca} de ${resumo.cadastradas}`,
     MARGEM + 8,
     y + 17,
   );
@@ -321,7 +294,6 @@ export async function montarRelatorioPdf(chamada: Chamada): Promise<JsPDF> {
         "Congregação",
         ...CARGOS_HIERARQUIA.map((c) => ({ content: abrev[c], styles: centro })),
         { content: "Total", styles: centro },
-        "Situação",
       ],
     ],
     body: resumo.congregacoes.map((l, i) => linhaTabelaCongregacao(l, i)),
@@ -330,12 +302,11 @@ export async function montarRelatorioPdf(chamada: Chamada): Promise<JsPDF> {
         { content: "TOTAL GERAL", colSpan: 2 },
         ...CARGOS_HIERARQUIA.map((c) => ({ content: resumo.porCargo[c], styles: centro })),
         { content: resumo.totalGeral, styles: centro },
-        "",
       ],
     ],
     columnStyles: {
       0: { cellWidth: 7, halign: "center", textColor: COR.suave },
-      1: { cellWidth: 38 },
+      1: { cellWidth: "auto" },
       2: { cellWidth: 14, halign: "center" },
       3: { cellWidth: 14, halign: "center" },
       4: { cellWidth: 14, halign: "center" },
@@ -343,7 +314,6 @@ export async function montarRelatorioPdf(chamada: Chamada): Promise<JsPDF> {
       6: { cellWidth: 14, halign: "center" },
       7: { cellWidth: 14, halign: "center" },
       8: { cellWidth: 15, halign: "center", fontStyle: "bold" },
-      9: { cellWidth: "auto" },
     },
   });
   y = finalY() + 8;
@@ -392,8 +362,7 @@ export async function montarRelatorioPdf(chamada: Chamada): Promise<JsPDF> {
     startY: y,
     body: [
       ["Congregações cadastradas", resumo.cadastradas],
-      ["Congregações conferidas", resumo.conferidas],
-      ["Congregações não conferidas", resumo.naoConferidas],
+      ["Congregações sem presentes", resumo.cadastradas - resumo.comPresenca],
       ["Congregações com presença", resumo.comPresenca],
       ["Presentes cadastrados (por nome)", resumo.totalCadastradosPresentes],
       ["Presentes não cadastrados", resumo.totalAvulsos],
@@ -426,17 +395,12 @@ export async function montarRelatorioPdf(chamada: Chamada): Promise<JsPDF> {
 }
 
 function linhaTabelaCongregacao(l: LinhaCongregacao, indice: number): RowInput {
-  const naoConferida = l.situacao === "nao_conferida";
-  const estiloLinha = naoConferida ? { textColor: COR.suave } : {};
+  const estiloLinha = l.total === 0 ? { textColor: COR.suave } : {};
   const celulas: CellInput[] = [
     { content: indice + 1 },
     { content: l.nome, styles: { fontStyle: "bold", ...estiloLinha } },
     ...CARGOS_HIERARQUIA.map((c) => ({ content: l.contagem[c], styles: estiloLinha })),
     { content: l.total, styles: { fontStyle: "bold", ...estiloLinha } },
-    {
-      content: textoSituacao(l.situacao),
-      styles: { textColor: corSituacao(l.situacao), fontSize: 7.5 },
-    },
   ];
   return celulas;
 }

@@ -26,8 +26,6 @@ export interface PresencaNominal {
 export interface RegistroCongregacao {
   /** Presentes NÃO cadastrados (visitantes/novos), contados por quantidade. */
   avulsos: Contagem;
-  /** Marcada pelo responsável como "chamada concluída". Não bloqueia alterações. */
-  conferida: boolean;
 }
 
 export interface DadosReuniao {

@@ -18,7 +18,6 @@ interface CardCongregacaoProps {
   aoMarcarPresenca: (obreiroId: string, presente: boolean) => void;
   aoAjustar: (congregacaoId: string, cargo: CargoId, delta: number) => void;
   aoDefinir: (congregacaoId: string, cargo: CargoId, valor: number) => void;
-  aoMarcarConferida: (congregacaoId: string, conferida: boolean) => void;
 }
 
 const ABREVIACOES: Record<CargoId, string> = {
@@ -39,9 +38,8 @@ export const CardCongregacao = memo(function CardCongregacao({
   aoMarcarPresenca,
   aoAjustar,
   aoDefinir,
-  aoMarcarConferida,
 }: CardCongregacaoProps) {
-  const { conferida, total } = linha;
+  const { total } = linha;
   const [filtro, setFiltro] = useState("");
   const [mostrarAvulsos, setMostrarAvulsos] = useState(false);
 
@@ -61,7 +59,7 @@ export const CardCongregacao = memo(function CardCongregacao({
   return (
     <section
       className={`overflow-hidden rounded-2xl border bg-white shadow-sm ${
-        conferida ? "border-emerald-300" : "border-slate-200"
+        total > 0 ? "border-slate-300" : "border-slate-200"
       } ${aberta ? "ring-2 ring-marca-100" : ""}`}
     >
       <button
@@ -70,18 +68,11 @@ export const CardCongregacao = memo(function CardCongregacao({
         aria-expanded={aberta}
         className="flex w-full items-center gap-3 px-4 py-3.5 text-left active:bg-slate-50"
       >
-        <span
-          aria-hidden
-          className={`flex size-8 shrink-0 items-center justify-center rounded-full text-base font-bold ${
-            conferida ? "bg-emerald-600 text-white" : "border-2 border-slate-300 text-transparent"
-          }`}
-        >
-          ✓
-        </span>
+
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[17px] font-bold text-slate-900 uppercase">{linha.nome}</span>
-          <span className={`block text-[13px] font-medium ${conferida ? "text-emerald-700" : "text-slate-500"}`}>
-            {conferida ? (total === 0 ? "Conferida — 0 presentes" : "Conferida") : "Não conferida"}
+          <span className="block text-[13px] font-medium text-slate-500">
+            {total === 0 ? "Nenhum presente" : `${total} presente${total === 1 ? "" : "s"}`}
             {pessoas.length > 0 && ` · ${linha.presentes.length}/${pessoas.length} cadastrados`}
           </span>
         </span>
@@ -187,24 +178,6 @@ export const CardCongregacao = memo(function CardCongregacao({
             </div>
           </div>
 
-          {!bloqueado &&
-            (conferida ? (
-              <button
-                type="button"
-                onClick={() => aoMarcarConferida(linha.id, false)}
-                className="mt-3 min-h-11 w-full rounded-xl border border-slate-300 text-[15px] font-semibold text-slate-600 active:bg-slate-100"
-              >
-                Desmarcar como conferida
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => aoMarcarConferida(linha.id, true)}
-                className="mt-3 min-h-13 w-full rounded-xl bg-emerald-600 text-base font-bold text-white active:bg-emerald-700"
-              >
-                ✓ CONCLUIR CONGREGAÇÃO
-              </button>
-            ))}
         </div>
       )}
     </section>

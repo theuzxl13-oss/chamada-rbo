@@ -3,7 +3,7 @@
 import { CARGOS, CARGOS_HIERARQUIA } from "@/domain/cargos";
 import type { ResumoChamada } from "@/domain/calculos";
 
-/** Total geral + totais por cargo + progresso das congregações conferidas. */
+/** Total geral + totais por cargo + congregações com presença. */
 export function PainelResumo({ resumo }: { resumo: ResumoChamada }) {
   return (
     <div className="grid gap-3 md:grid-cols-[1.1fr_1fr]">
@@ -38,28 +38,28 @@ export function ProgressoChamada({ resumo }: { resumo: ResumoChamada }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
       <p className="text-xs font-bold tracking-widest text-slate-500 uppercase">
-        Congregações conferidas
+        Congregações com presença
       </p>
       <p className="mt-1 text-3xl font-extrabold text-slate-900">
-        <span className="tabular">{resumo.conferidas}</span>
+        <span className="tabular">{resumo.comPresenca}</span>
         <span className="text-lg font-semibold text-slate-500"> de {resumo.cadastradas}</span>
       </p>
       <div
         className="mt-3 h-3.5 w-full overflow-hidden rounded-full bg-slate-200"
         role="progressbar"
-        aria-valuenow={resumo.percentualConferido}
+        aria-valuenow={resumo.percentualComPresenca}
         aria-valuemin={0}
         aria-valuemax={100}
       >
         <div
           className="h-full rounded-full bg-emerald-600 transition-[width] duration-300"
-          style={{ width: `${resumo.percentualConferido}%` }}
+          style={{ width: `${resumo.percentualComPresenca}%` }}
         />
       </div>
       <div className="mt-2 flex justify-between text-sm">
-        <span className="font-bold text-emerald-700">{resumo.percentualConferido}%</span>
+        <span className="font-bold text-emerald-700">{resumo.percentualComPresenca}%</span>
         <span className="text-slate-500">
-          {resumo.naoConferidas} não conferida{resumo.naoConferidas === 1 ? "" : "s"}
+          {resumo.cadastradas - resumo.comPresenca} sem presentes
         </span>
       </div>
       {!resumo.consistente && (

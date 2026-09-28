@@ -66,9 +66,9 @@ export function TelaInicial({
               <dd className="tabular text-2xl font-extrabold text-slate-900">{resumo.totalGeral}</dd>
             </div>
             <div className="rounded-xl bg-slate-50 p-3">
-              <dt className="text-xs font-semibold text-slate-500 uppercase">Conferidas</dt>
+              <dt className="text-xs font-semibold text-slate-500 uppercase">Com presença</dt>
               <dd className="tabular text-2xl font-extrabold text-slate-900">
-                {resumo.conferidas}/{resumo.cadastradas}
+                {resumo.comPresenca}/{resumo.cadastradas}
               </dd>
             </div>
           </dl>
@@ -98,7 +98,7 @@ export function TelaInicial({
               <p className="font-bold text-amber-800">Chamada salva neste aparelho</p>
               <p className="mt-1 text-[15px] text-amber-900">
                 Reunião de {formatarData(backup.reuniao.data)} — total {resumoBackup.totalGeral},{" "}
-                {resumoBackup.conferidas} de {resumoBackup.cadastradas} congregações conferidas.
+                {resumoBackup.comPresenca} de {resumoBackup.cadastradas} congregações com presença.
                 Ela não está mais no sistema. Deseja restaurá-la?
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2">

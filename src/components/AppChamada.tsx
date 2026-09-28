@@ -25,7 +25,6 @@ type AcaoEncerrar = "nova" | "descartar";
 type EstadoModal =
   | { tipo: "protecao"; acao: AcaoEncerrar }
   | { tipo: "confirmar_encerrar"; acao: AcaoEncerrar }
-  | { tipo: "nao_conferidas"; quantidade: number }
   | { tipo: "confirmar_finalizar" }
   | { tipo: "processando"; texto: string }
   | { tipo: "erro"; titulo: string; mensagens: string[] }
@@ -140,11 +139,8 @@ export function AppChamada() {
       });
       return;
     }
-    setModal(
-      resumo.naoConferidas > 0
-        ? { tipo: "nao_conferidas", quantidade: resumo.naoConferidas }
-        : { tipo: "confirmar_finalizar" },
-    );
+    setModal({ tipo: "confirmar_finalizar" });
+
   }, [chamada]);
 
   // ------------------------------------------------------------- nova reunião / descarte
@@ -333,29 +329,6 @@ export function AppChamada() {
               onClick={() => executarEncerramento(modal.acao)}
             >
               {modal.acao === "nova" ? "Continuar" : "Descartar"}
-            </Botao>
-          </AcoesModal>
-        </Modal>
-      )}
-
-      {modal?.tipo === "nao_conferidas" && (
-        <Modal titulo="Congregações não conferidas" tom="alerta" aoFechar={() => setModal(null)}>
-          <p>
-            Existem congregações ainda não conferidas ({modal.quantidade}). Deseja realmente finalizar a
-            chamada?
-          </p>
-          <AcoesModal>
-            <Botao
-              variante="secundario"
-              onClick={() => {
-                setModal(null);
-                setTela("revisao");
-              }}
-            >
-              VOLTAR
-            </Botao>
-            <Botao variante="alerta" onClick={() => setModal({ tipo: "confirmar_finalizar" })}>
-              FINALIZAR MESMO ASSIM
             </Botao>
           </AcoesModal>
         </Modal>

@@ -33,10 +33,8 @@ function somarContagens(a: Contagem, b: Contagem): Contagem {
 }
 
 export function registroDe(chamada: Chamada, congregacaoId: string): RegistroCongregacao {
-  return chamada.congregacoes[congregacaoId] ?? { avulsos: contagemZerada(), conferida: false };
+  return chamada.congregacoes[congregacaoId] ?? { avulsos: contagemZerada() };
 }
-
-export type SituacaoCongregacao = "nao_conferida" | "conferida_sem_presenca" | "conferida";
 
 export interface PresencaComCongregacao extends PresencaNominal {
   congregacaoNome: string;
@@ -53,8 +51,6 @@ export interface LinhaCongregacao {
   /** Cadastrados presentes, em ordem alfabética. */
   presentes: PresencaNominal[];
   total: number;
-  conferida: boolean;
-  situacao: SituacaoCongregacao;
 }
 
 export interface ResumoChamada {
@@ -72,10 +68,9 @@ export interface ResumoChamada {
   totalGeral: number;
   consistente: boolean;
   cadastradas: number;
-  conferidas: number;
-  naoConferidas: number;
+  /** Congregações com pelo menos um presente. */
   comPresenca: number;
-  percentualConferido: number;
+  percentualComPresenca: number;
 }
 
 /** Cadastrados presentes agrupados por congregação. */
@@ -108,8 +103,6 @@ export function calcularResumo(chamada: Chamada): ResumoChamada {
       totalAvulsos: totalContagem(reg.avulsos),
       presentes,
       total,
-      conferida: reg.conferida,
-      situacao: !reg.conferida ? "nao_conferida" : total === 0 ? "conferida_sem_presenca" : "conferida",
     };
   });
 
@@ -127,7 +120,7 @@ export function calcularResumo(chamada: Chamada): ResumoChamada {
 
   const totalPorCargos = totalContagem(porCargo);
   const totalPorCongregacoes = congregacoes.reduce((s, l) => s + l.total, 0);
-  const conferidas = congregacoes.filter((l) => l.conferida).length;
+  const comPresenca = congregacoes.filter((l) => l.total > 0).length;
 
   return {
     porCargo,
@@ -140,10 +133,8 @@ export function calcularResumo(chamada: Chamada): ResumoChamada {
     totalGeral: totalPorCargos,
     consistente: totalPorCargos === totalPorCongregacoes,
     cadastradas: TOTAL_CONGREGACOES,
-    conferidas,
-    naoConferidas: TOTAL_CONGREGACOES - conferidas,
-    comPresenca: congregacoes.filter((l) => l.total > 0).length,
-    percentualConferido: Math.round((conferidas / TOTAL_CONGREGACOES) * 100),
+    comPresenca,
+    percentualComPresenca: Math.round((comPresenca / TOTAL_CONGREGACOES) * 100),
   };
 }
 

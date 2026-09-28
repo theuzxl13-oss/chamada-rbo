@@ -94,21 +94,21 @@ export function PainelTotais() {
 
         <div className="flex flex-col justify-center rounded-3xl border border-slate-200 bg-white px-6 py-6 shadow-sm sm:px-8">
           <p className="text-sm font-bold tracking-[0.2em] text-slate-500 uppercase sm:text-base">
-            Congregações conferidas
+            Congregações com presença
           </p>
           <p className="mt-1 text-5xl font-extrabold text-slate-900 sm:text-6xl">
-            <span className="tabular">{resumo.conferidas}</span>
+            <span className="tabular">{resumo.comPresenca}</span>
             <span className="text-2xl font-semibold text-slate-400 sm:text-3xl"> / {resumo.cadastradas}</span>
           </p>
           <div className="mt-4 h-5 w-full overflow-hidden rounded-full bg-slate-200">
             <div
               className="h-full rounded-full bg-emerald-600 transition-[width] duration-500"
-              style={{ width: `${resumo.percentualConferido}%` }}
+              style={{ width: `${resumo.percentualComPresenca}%` }}
             />
           </div>
           <div className="mt-2 flex justify-between text-base sm:text-lg">
-            <span className="font-bold text-emerald-700">{resumo.percentualConferido}%</span>
-            <span className="text-slate-500">{resumo.comPresenca} com presença</span>
+            <span className="font-bold text-emerald-700">{resumo.percentualComPresenca}%</span>
+            <span className="text-slate-500">{resumo.cadastradas - resumo.comPresenca} sem presentes</span>
           </div>
         </div>
       </section>
@@ -154,13 +154,7 @@ export function PainelTotais() {
                 key={l.id}
                 className="flex items-center gap-2 border-b border-slate-100 py-2 text-base sm:text-lg"
               >
-                <span
-                  aria-label={l.conferida ? "Conferida" : "Não conferida"}
-                  className={`w-5 text-center font-bold ${l.conferida ? "text-emerald-600" : "text-slate-300"}`}
-                >
-                  {l.conferida ? "✓" : "○"}
-                </span>
-                <span className={`flex-1 truncate ${l.conferida ? "font-semibold text-slate-800" : "text-slate-500"}`}>
+                <span className={`flex-1 truncate ${l.total > 0 ? "font-semibold text-slate-800" : "text-slate-500"}`}>
                   {l.nome}
                 </span>
                 <span className="tabular font-extrabold text-marca-700">{l.total}</span>

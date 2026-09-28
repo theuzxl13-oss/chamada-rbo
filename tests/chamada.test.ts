@@ -111,12 +111,12 @@ describe("cadastro de obreiros", () => {
 });
 
 describe("chamada", () => {
-  it("nova reunião começa com tudo em zero e nenhuma congregação conferida", () => {
+  it("nova reunião começa com tudo em zero", () => {
     const r = calcularResumo(novaReuniao().chamada!);
     expect(r.totalGeral).toBe(0);
-    expect(r.conferidas).toBe(0);
+    expect(r.comPresenca).toBe(0);
     expect(r.listaGeral).toHaveLength(0);
-    expect(r.congregacoes.every((l) => l.total === 0 && !l.conferida)).toBe(true);
+    expect(r.congregacoes.every((l) => l.total === 0)).toBe(true);
   });
 
   it("presença por nome soma no cargo e na congregação do obreiro", () => {
@@ -185,25 +185,6 @@ describe("chamada", () => {
     expect(d.chamada!.congregacoes.sede.avulsos.membro).toBe(0);
   });
 
-  it("concluir congregação não impede correções", () => {
-    let d = novaReuniao();
-    d = aplicar(d, [
-      { tipo: "definir", chamadaId: id(d), congregacaoId: "sede", cargo: "diacono", valor: 10 },
-      { tipo: "marcar_conferida", chamadaId: id(d), congregacaoId: "sede", conferida: true },
-      { tipo: "definir", chamadaId: id(d), congregacaoId: "sede", cargo: "diacono", valor: 11 },
-    ]);
-    expect(d.chamada!.congregacoes.sede.conferida).toBe(true);
-    expect(d.chamada!.congregacoes.sede.avulsos.diacono).toBe(11);
-  });
-
-  it("diferencia 'conferida — 0 presentes' de 'não conferida'", () => {
-    let d = novaReuniao();
-    d = aplicar(d, [{ tipo: "marcar_conferida", chamadaId: id(d), congregacaoId: "cipo", conferida: true }]);
-    const r = calcularResumo(d.chamada!);
-    expect(r.congregacoes.find((l) => l.id === "cipo")!.situacao).toBe("conferida_sem_presenca");
-    expect(r.congregacoes.find((l) => l.id === "sede")!.situacao).toBe("nao_conferida");
-  });
-
   it("presença continua registrada se o obreiro for removido do cadastro", () => {
     let d = novaReuniao(cadastrar(VAZIO, [PEDRO]));
     d = aplicar(d, [
@@ -226,12 +207,20 @@ describe("chamada", () => {
     expect(d.chamada!.congregacoes.sede.avulsos.pastor).toBe(1);
   });
 
+  it("conta congregações com presença", () => {
+    let d = novaReuniao(cadastrar(VAZIO, [PEDRO, ERICA]));
+    d = aplicar(d, [{ tipo: "marcar_presenca", chamadaId: id(d), obreiroId: PEDRO.id, presente: true }]);
+    d = definirAvulsos(d, "cipo", [0, 0, 0, 0, 0, 2]);
+    const r = calcularResumo(d.chamada!);
+    expect(r.comPresenca).toBe(2);
+    expect(r.percentualComPresenca).toBe(Math.round((2 / 33) * 100));
+  });
+
   it("nova reunião zera TODAS as contagens e presenças", () => {
     let d = novaReuniao(cadastrar(VAZIO, [PEDRO, ANA]));
     for (const cong of CONGREGACOES) d = definirAvulsos(d, cong.id, [1, 1, 1, 1, 1, 1]);
     d = aplicar(d, [
       { tipo: "marcar_presenca", chamadaId: id(d), obreiroId: PEDRO.id, presente: true },
-      { tipo: "marcar_conferida", chamadaId: id(d), congregacaoId: "sede", conferida: true },
     ]);
     const anteriorId = id(d);
     expect(calcularResumo(d.chamada!).totalGeral).toBe(33 * 6 + 1);
@@ -240,7 +229,7 @@ describe("chamada", () => {
     const r = calcularResumo(d.chamada!);
     expect(id(d)).not.toBe(anteriorId);
     expect(r.totalGeral).toBe(0);
-    expect(r.conferidas).toBe(0);
+    expect(r.comPresenca).toBe(0);
     expect(r.listaGeral).toHaveLength(0);
     expect(Object.values(r.porCargo).every((v) => v === 0)).toBe(true);
     expect(d.chamada!.pdfGeradoEm).toBeNull();
@@ -291,7 +280,7 @@ describe("chamada", () => {
     const antiga = {
       reuniao: { id: "r1", data: "2026-09-27", horario: "", local: "", observacao: "", criadaEm: "" },
       status: "em_andamento",
-      congregacoes: { sede: { contagem: { diacono: 3 }, conferida: true } },
+      congregacoes: { sede: { contagem: { diacono: 3 } } },
     };
     const c = normalizarChamada(antiga);
     expect(c.congregacoes.sede.avulsos.diacono).toBe(3);

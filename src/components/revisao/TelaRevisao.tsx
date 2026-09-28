@@ -15,7 +15,6 @@ interface TelaRevisaoProps {
 
 export function TelaRevisao({ chamada, aoVoltar, aoFinalizar }: TelaRevisaoProps) {
   const resumo = useMemo(() => calcularResumo(chamada), [chamada]);
-  const naoConferidas = resumo.congregacoes.filter((l) => !l.conferida);
 
   return (
     <main className="mx-auto max-w-3xl px-4 pt-6 pb-28">
@@ -34,7 +33,7 @@ export function TelaRevisao({ chamada, aoVoltar, aoFinalizar }: TelaRevisaoProps
           <p className="text-xs font-bold tracking-widest text-marca-100 uppercase">Total geral</p>
           <p className="tabular text-5xl font-extrabold">{resumo.totalGeral}</p>
           <p className="mt-1 text-sm text-marca-100">
-            {resumo.conferidas} de {resumo.cadastradas} congregações conferidas
+            {resumo.comPresenca} de {resumo.cadastradas} congregações com presença
           </p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -54,42 +53,19 @@ export function TelaRevisao({ chamada, aoVoltar, aoFinalizar }: TelaRevisaoProps
         </p>
       )}
 
-      {naoConferidas.length > 0 && (
-        <div className="mb-4 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4">
-          <p className="font-bold text-amber-800">
-            {naoConferidas.length} congregaç{naoConferidas.length === 1 ? "ão ainda não foi conferida" : "ões ainda não foram conferidas"}:
-          </p>
-          <p className="mt-1 text-[15px] text-amber-900">{naoConferidas.map((l) => l.nome).join(", ")}</p>
-        </div>
-      )}
-
       <h2 className="mb-2 text-sm font-bold tracking-widest text-slate-500 uppercase">Congregações</h2>
       <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
         {resumo.congregacoes.map((l) => (
-          <li
-            key={l.id}
-            className={`flex items-center gap-3 px-4 py-2.5 ${l.conferida ? "" : "bg-amber-50/60"}`}
-          >
-            <span
-              className={`w-5 text-center text-lg font-bold ${l.conferida ? "text-emerald-600" : "text-amber-600"}`}
-              aria-hidden
-            >
-              {l.conferida ? "✓" : "○"}
-            </span>
-            <span className="flex-1 font-semibold text-slate-800">{l.nome}</span>
-            {l.conferida ? (
-              <span className="tabular text-lg font-bold text-slate-900">
-                {l.total === 0 ? <span className="text-sm font-medium text-slate-500">0 presentes</span> : l.total}
-              </span>
+          <li key={l.id} className="flex items-center gap-3 px-4 py-2.5">
+            <span className={`flex-1 ${l.total > 0 ? "font-semibold text-slate-800" : "text-slate-500"}`}>{l.nome}</span>
+            {l.total > 0 ? (
+              <span className="tabular text-lg font-bold text-slate-900">{l.total}</span>
             ) : (
-              <span className="text-sm font-medium text-amber-700">
-                Não conferida{l.total > 0 ? ` (${l.total})` : ""}
-              </span>
+              <span className="text-sm font-medium text-slate-400">Nenhuma presença</span>
             )}
           </li>
         ))}
       </ul>
-
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-3xl gap-2 px-4 py-3">
           <Botao variante="secundario" className="flex-1" onClick={aoVoltar}>
