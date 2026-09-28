@@ -2,11 +2,12 @@
 
 import { memo, useMemo, useState } from "react";
 import { CARGOS, CARGOS_CHAMADA, CARGOS_HIERARQUIA, type CargoId } from "@/domain/cargos";
-import type { LinhaCongregacao } from "@/domain/calculos";
+import type { FaltasCongregacao, LinhaCongregacao } from "@/domain/calculos";
 import { nomeContem, ordenarPorNome } from "@/domain/obreiros";
 import type { Obreiro } from "@/domain/types";
 import { ContadorCargo } from "./ContadorCargo";
 import { FormCadastroRapido } from "./FormCadastroRapido";
+import { SecaoFaltas } from "./SecaoFaltas";
 import { LinhaPresenca } from "./LinhaPresenca";
 
 interface CardCongregacaoProps {
@@ -21,6 +22,10 @@ interface CardCongregacaoProps {
   aoDefinir: (congregacaoId: string, cargo: CargoId, valor: number) => void;
   /** Cadastra o obreiro nesta congregação e marca presente. Devolve erro ou null. */
   aoCadastrarPresente: (congregacaoId: string, nome: string, cargo: CargoId) => Promise<string | null>;
+  /** Quem não compareceu nesta congregação. */
+  faltas: FaltasCongregacao;
+  aoJustificar: (obreiroId: string, motivo: string) => void;
+  aoRemoverJustificativa: (obreiroId: string) => void;
 }
 
 const ABREVIACOES: Record<CargoId, string> = {
@@ -42,6 +47,9 @@ export const CardCongregacao = memo(function CardCongregacao({
   aoAjustar,
   aoDefinir,
   aoCadastrarPresente,
+  faltas,
+  aoJustificar,
+  aoRemoverJustificativa,
 }: CardCongregacaoProps) {
   const { total } = linha;
   const [filtro, setFiltro] = useState("");
@@ -57,6 +65,7 @@ export const CardCongregacao = memo(function CardCongregacao({
   }, [obreiros, linha.presentes]);
 
   const presentesIds = useMemo(() => new Set(linha.presentes.map((p) => p.obreiroId)), [linha.presentes]);
+  const justificadosIds = useMemo(() => new Set(faltas.justificadas.map((f) => f.obreiroId)), [faltas]);
   const visiveis = filtro ? pessoas.filter((p) => nomeContem(p.nome, filtro)) : pessoas;
 
   return (
@@ -123,6 +132,7 @@ export const CardCongregacao = memo(function CardCongregacao({
                       nome={p.nome}
                       cargo={p.cargo}
                       presente={presentesIds.has(p.id)}
+                      detalhe={justificadosIds.has(p.id) ? "Falta justificada" : undefined}
                       bloqueado={bloqueado}
                       aoAlternar={() => aoMarcarPresenca(p.id, !presentesIds.has(p.id))}
                     />
@@ -136,6 +146,14 @@ export const CardCongregacao = memo(function CardCongregacao({
               </ul>
             </>
           )}
+
+          {/* ------------------------------------------------ faltas */}
+          <SecaoFaltas
+            faltas={faltas}
+            bloqueado={bloqueado}
+            aoJustificar={aoJustificar}
+            aoRemoverJustificativa={aoRemoverJustificativa}
+          />
 
           {/* ------------------------------------------------ cadastrar na hora */}
           {!bloqueado && (

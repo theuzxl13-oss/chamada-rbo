@@ -11,7 +11,7 @@ const ctx: ContextoOperacao = { agora: () => new Date().toISOString(), novoId: (
 const NOMES = ["Silva", "Souza", "Oliveira", "Pereira", "Almeida", "Barbosa", "Ferreira", "Gomes"];
 const PRENOMES = ["Ana", "Bruno", "Carla", "Daniel", "Elias", "Fábio", "Gabriela", "Hélio", "Íris", "José"];
 
-function chamadaCompleta(): Chamada {
+function chamadaCompleta(): DadosCompartilhados {
   let d: DadosCompartilhados = { chamada: null, obreiros: [] };
   const aplicar = (op: Operacao) => (d = aplicarOperacao(d, op, ctx));
 
@@ -36,23 +36,25 @@ function chamadaCompleta(): Chamada {
         },
       });
       if (k % 3 !== 2) aplicar({ tipo: "marcar_presenca", chamadaId: "teste", obreiroId: oid, presente: true });
+      else if (i % 2 === 0) aplicar({ tipo: "justificar_falta", chamadaId: "teste", obreiroId: oid, motivo: k % 2 ? "Doença" : "" });
     }
     if (i % 4 === 0) {
       aplicar({ tipo: "definir", chamadaId: "teste", congregacaoId: cong.id, cargo: "membro", valor: 2 });
     }
   });
-  return d.chamada!;
+  return d;
 }
 
 describe("relatório PDF", () => {
   it("gera PDF A4 com todas as 33 congregações, lista A–Z e os mesmos totais da tela", async () => {
-    const chamada = chamadaCompleta();
+    const dados = chamadaCompleta();
+    const chamada = dados.chamada!;
     const resumo = calcularResumo(chamada);
     const logo = {
       dataUrl: `data:image/png;base64,${readFileSync("public/logo-preta.png").toString("base64")}`,
       proporcao: 1152 / 414,
     };
-    const doc = await montarRelatorioPdf(chamada, logo);
+    const doc = await montarRelatorioPdf(chamada, logo, dados.obreiros);
 
     expect(doc.getNumberOfPages()).toBeGreaterThan(2);
     const { width, height } = doc.internal.pageSize;
@@ -66,6 +68,8 @@ describe("relatório PDF", () => {
     }
     expect(bruto).toContain(`(${resumo.totalGeral})`);
     expect(bruto).toContain("LISTA GERAL DE PRESENTES");
+    expect(bruto).toContain("FALTAS JUSTIFICADAS");
+    expect(bruto).toContain("FALTAS SEM JUSTIFICATIVA");
 
     // Permite inspecionar o PDF gerado: RBO_PDF_SAIDA=caminho.pdf npm test
     if (process.env.RBO_PDF_SAIDA) {
@@ -74,7 +78,7 @@ describe("relatório PDF", () => {
   });
 
   it("não gera PDF com dados inconsistentes", async () => {
-    const chamada = chamadaCompleta();
+    const chamada = chamadaCompleta().chamada!;
     chamada.congregacoes.sede.avulsos.pastor = -3;
     await expect(montarRelatorioPdf(chamada)).rejects.toBeInstanceOf(ErroRelatorio);
   });

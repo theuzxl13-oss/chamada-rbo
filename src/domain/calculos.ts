@@ -8,7 +8,7 @@
 import { CARGOS_HIERARQUIA } from "./cargos";
 import { CONGREGACOES, TOTAL_CONGREGACOES, buscarCongregacao } from "./congregacoes";
 import { compararNomes } from "./obreiros";
-import type { Chamada, Contagem, PresencaNominal, RegistroCongregacao } from "./types";
+import type { Chamada, Contagem, FaltaJustificada, Obreiro, PresencaNominal, RegistroCongregacao } from "./types";
 
 export function contagemZerada(): Contagem {
   return {
@@ -138,6 +138,74 @@ export function calcularResumo(chamada: Chamada): ResumoChamada {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Faltas: obreiros cadastrados que não foram marcados como presentes
+// ---------------------------------------------------------------------------
+
+export interface FaltasCongregacao {
+  justificadas: FaltaJustificada[];
+  semJustificativa: PresencaNominal[];
+}
+
+export interface ResumoFaltas {
+  /** Obreiros cadastrados considerados na chamada. */
+  cadastrados: number;
+  porCongregacao: Map<string, FaltasCongregacao>;
+  /** Todas as faltas justificadas, em ordem alfabética. */
+  justificadas: (FaltaJustificada & { congregacaoNome: string })[];
+  /** Todas as faltas sem justificativa, em ordem alfabética. */
+  semJustificativa: (PresencaNominal & { congregacaoNome: string })[];
+}
+
+const porNome = (a: { nome: string }, b: { nome: string }) => compararNomes(a.nome, b.nome);
+
+/**
+ * Calcula as faltas. Com a chamada finalizada, usa o cadastro do momento do
+ * fechamento (o relatório não muda se o cadastro for alterado depois).
+ */
+export function calcularFaltas(chamada: Chamada, obreirosAtuais: Obreiro[]): ResumoFaltas {
+  const base = chamada.cadastroNoFechamento ?? obreirosAtuais;
+  const porCongregacao = new Map<string, FaltasCongregacao>();
+  const grupo = (id: string) => {
+    let g = porCongregacao.get(id);
+    if (!g) porCongregacao.set(id, (g = { justificadas: [], semJustificativa: [] }));
+    return g;
+  };
+
+  // Faltas justificadas (inclusive de quem saiu do cadastro depois de justificado)
+  for (const j of Object.values(chamada.justificadas)) {
+    if (!chamada.presentes[j.obreiroId]) grupo(j.congregacaoId).justificadas.push(j);
+  }
+  // Faltas sem justificativa
+  for (const o of base) {
+    if (chamada.presentes[o.id] || chamada.justificadas[o.id]) continue;
+    grupo(o.congregacaoId).semJustificativa.push({
+      obreiroId: o.id,
+      nome: o.nome,
+      cargo: o.cargo,
+      congregacaoId: o.congregacaoId,
+    });
+  }
+  for (const g of porCongregacao.values()) {
+    g.justificadas.sort(porNome);
+    g.semJustificativa.sort(porNome);
+  }
+
+  const nomeCong = (id: string) => buscarCongregacao(id)?.nome ?? "—";
+  const todas = [...porCongregacao.values()];
+  return {
+    cadastrados: base.length,
+    porCongregacao,
+    justificadas: todas
+      .flatMap((g) => g.justificadas)
+      .map((j) => ({ ...j, congregacaoNome: nomeCong(j.congregacaoId) }))
+      .sort(porNome),
+    semJustificativa: todas
+      .flatMap((g) => g.semJustificativa)
+      .map((p) => ({ ...p, congregacaoNome: nomeCong(p.congregacaoId) }))
+      .sort(porNome),
+  };
+}
 export interface ResultadoValidacao {
   ok: boolean;
   erros: string[];

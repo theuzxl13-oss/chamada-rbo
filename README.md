@@ -46,8 +46,11 @@ pela internet, publique no Render (seção 8).
    **Toque no nome** para marcar presente (fica verde). Toque de novo para desmarcar.
 5. **Não cadastrados**: use "+ Contar presentes não cadastrados" e os botões **−** / **+**
    (ou digite o número) para visitantes ou pessoas ainda sem cadastro.
-6. **Revisar chamada** mostra o total de cada congregação.
-7. **Finalizar chamada** pede confirmação e gera o PDF.
+6. **Não compareceram**: dentro de cada congregação, a seção lista quem está cadastrado e não foi marcado
+   presente. Toque em **Justificar** e escolha um motivo (Doença, Trabalho, Viagem, Família) ou escreva outro;
+   o motivo é opcional. Se a pessoa chegar depois, basta tocar no nome: a justificativa sai sozinha.
+7. **Revisar chamada** mostra o total de cada congregação.
+8. **Finalizar chamada** pede confirmação e gera o PDF.
 
 ### Painel de totais (TV / projetor)
 
@@ -82,7 +85,7 @@ O arquivo é baixado com o nome `reuniao-obreiros-DD-MM-AAAA.pdf`.
 - **Baixar PDF** gera o arquivo novamente em qualquer aparelho.
 
 Conteúdo do PDF: cabeçalho e rodapé com número da página, dados da reunião, total geral em destaque,
-total por cargo, tabela por congregação, **lista geral de presentes (A–Z)**,
+total por cargo, tabela por congregação, **lista geral de presentes (A–Z)**, **faltas justificadas e sem justificativa (A–Z)**,
 **detalhamento de cada congregação com os presentes (A–Z)** e resumo final.
 
 ## 6. Como iniciar uma nova reunião

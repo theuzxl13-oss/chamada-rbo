@@ -8,12 +8,13 @@ import type { jsPDF as JsPDF } from "jspdf";
 import type { CellInput, RowInput, UserOptions } from "jspdf-autotable";
 import { CARGOS, CARGOS_HIERARQUIA } from "@/domain/cargos";
 import {
+  calcularFaltas,
   calcularResumo,
   validarChamada,
   type LinhaCongregacao,
 } from "@/domain/calculos";
 import { formatarData, formatarDataHora, nomeArquivoPdf } from "@/domain/formatacao";
-import type { Chamada } from "@/domain/types";
+import type { Chamada, Obreiro } from "@/domain/types";
 
 export class ErroRelatorio extends Error {
   constructor(public erros: string[]) {
@@ -32,6 +33,8 @@ const COR = {
   suave: [110, 116, 125] as RGB,
   linha: [212, 212, 216] as RGB,
   zebra: [250, 250, 250] as RGB,
+  ambar: [146, 64, 14] as RGB,
+  ambarClaro: [254, 243, 199] as RGB,
 };
 
 // Medidas em milímetros (A4 = 210 × 297)
@@ -46,8 +49,8 @@ const LARGURA_UTIL = LARGURA - MARGEM * 2;
  * Gera e baixa o PDF. Lança `ErroRelatorio` se os totais não forem consistentes
  * (nunca gera um PDF com números divergentes).
  */
-export async function gerarRelatorioPdf(chamada: Chamada): Promise<string> {
-  const doc = await montarRelatorioPdf(chamada, await carregarLogo());
+export async function gerarRelatorioPdf(chamada: Chamada, obreiros: Obreiro[]): Promise<string> {
+  const doc = await montarRelatorioPdf(chamada, await carregarLogo(), obreiros);
   const nome = nomeArquivoPdf(chamada.reuniao.data);
   doc.save(nome);
   return nome;
@@ -86,7 +89,11 @@ export interface LogoPdf {
 const PROPORCAO_LOGO_PADRAO = 1152 / 414;
 
 /** Monta o documento do relatório sem baixá-lo. */
-export async function montarRelatorioPdf(chamada: Chamada, logo: LogoPdf | null = null): Promise<JsPDF> {
+export async function montarRelatorioPdf(
+  chamada: Chamada,
+  logo: LogoPdf | null = null,
+  obreiros: Obreiro[] = [],
+): Promise<JsPDF> {
   const validacao = validarChamada(chamada);
   if (!validacao.ok) throw new ErroRelatorio(validacao.erros);
 
@@ -96,6 +103,7 @@ export async function montarRelatorioPdf(chamada: Chamada, logo: LogoPdf | null 
   ]);
 
   const resumo = calcularResumo(chamada);
+  const faltas = calcularFaltas(chamada, obreiros);
   const { reuniao } = chamada;
   const dataFormatada = formatarData(reuniao.data);
   const geradoEm = formatarDataHora(new Date().toISOString());
@@ -230,6 +238,38 @@ export async function montarRelatorioPdf(chamada: Chamada, logo: LogoPdf | null 
             : undefined,
         body: corpo,
         columnStyles: { 0: { cellWidth: 10 }, 2: { cellWidth: 40 } },
+      });
+      fim = finalY();
+    }
+
+    const faltasCong = faltas.porCongregacao.get(l.id);
+    if (faltasCong && (faltasCong.justificadas.length > 0 || faltasCong.semJustificativa.length > 0)) {
+      const corpo: RowInput[] = faltasCong.justificadas.map((f, i) => [
+        { content: i + 1, styles: { halign: "center", textColor: COR.suave } },
+        f.nome,
+        CARGOS[f.cargo].singular,
+        f.motivo || "—",
+      ]);
+      if (faltasCong.semJustificativa.length > 0) {
+        corpo.push([
+          {
+            content: `Faltas sem justificativa: ${faltasCong.semJustificativa.length}`,
+            colSpan: 4,
+            styles: { fontStyle: "italic", textColor: COR.suave },
+          },
+        ]);
+      }
+      autoTable(doc, {
+        ...baseTabela,
+        startY: fim,
+        styles: { ...baseTabela.styles, fontSize: 8.5, cellPadding: 1.2 },
+        headStyles: { ...subcabecalho, fillColor: COR.ambarClaro, textColor: COR.ambar },
+        head:
+          faltasCong.justificadas.length > 0
+            ? [[{ content: "#", styles: { halign: "center" } }, "Faltas justificadas", "Cargo", "Motivo"]]
+            : undefined,
+        body: corpo,
+        columnStyles: { 0: { cellWidth: 10 }, 2: { cellWidth: 30 }, 3: { cellWidth: 45 } },
       });
       fim = finalY();
     }
@@ -388,6 +428,51 @@ export async function montarRelatorioPdf(chamada: Chamada, logo: LogoPdf | null 
   }
   y += 4;
 
+  // ======================================================= FALTAS
+  y = tituloSecao("FALTAS JUSTIFICADAS (ORDEM ALFABÉTICA)", garantirEspaco(y, 30));
+  if (faltas.justificadas.length === 0) {
+    y = textoNota("Nenhuma falta justificada.", y);
+  } else {
+    autoTable(doc, {
+      ...baseTabela,
+      startY: y,
+      styles: { ...baseTabela.styles, fontSize: 9, cellPadding: 1.4 },
+      headStyles: { ...baseTabela.headStyles, fillColor: COR.ambar },
+      head: [[{ content: "#", styles: centro }, "Nome", "Cargo", "Congregação", "Motivo"]],
+      body: faltas.justificadas.map((f, i) => [
+        { content: i + 1, styles: { halign: "center", textColor: COR.suave } },
+        f.nome,
+        CARGOS[f.cargo].singular,
+        f.congregacaoNome,
+        f.motivo || "—",
+      ]),
+      columnStyles: { 0: { cellWidth: 10 }, 2: { cellWidth: 26 }, 3: { cellWidth: 38 }, 4: { cellWidth: 42 } },
+    });
+    y = finalY() + 4;
+  }
+  y += 4;
+
+  y = tituloSecao("FALTAS SEM JUSTIFICATIVA (ORDEM ALFABÉTICA)", garantirEspaco(y, 30));
+  if (faltas.semJustificativa.length === 0) {
+    y = textoNota("Nenhuma falta sem justificativa.", y);
+  } else {
+    autoTable(doc, {
+      ...baseTabela,
+      startY: y,
+      styles: { ...baseTabela.styles, fontSize: 9, cellPadding: 1.4 },
+      head: [[{ content: "#", styles: centro }, "Nome", "Cargo", "Congregação"]],
+      body: faltas.semJustificativa.map((p, i) => [
+        { content: i + 1, styles: { halign: "center", textColor: COR.suave } },
+        p.nome,
+        CARGOS[p.cargo].singular,
+        p.congregacaoNome,
+      ]),
+      columnStyles: { 0: { cellWidth: 10 }, 2: { cellWidth: 32 }, 3: { cellWidth: 48 } },
+    });
+    y = finalY() + 4;
+  }
+  y += 4;
+
   // ======================================================= DETALHAMENTO
   y = tituloSecao("RELATÓRIO DETALHADO POR CONGREGAÇÃO", garantirEspaco(y, 50));
   for (const linha of resumo.congregacoes) {
@@ -404,8 +489,11 @@ export async function montarRelatorioPdf(chamada: Chamada, logo: LogoPdf | null 
       ["Congregações cadastradas", resumo.cadastradas],
       ["Congregações sem presentes", resumo.cadastradas - resumo.comPresenca],
       ["Congregações com presença", resumo.comPresenca],
+      ["Obreiros cadastrados", faltas.cadastrados],
       ["Presentes cadastrados (por nome)", resumo.totalCadastradosPresentes],
       ["Presentes não cadastrados", resumo.totalAvulsos],
+      ["Faltas justificadas", faltas.justificadas.length],
+      ["Faltas sem justificativa", faltas.semJustificativa.length],
       ...CARGOS_HIERARQUIA.map((c) => [CARGOS[c].plural, resumo.porCargo[c]] as RowInput),
     ],
     foot: [

@@ -19,18 +19,22 @@ import type {
   DadosCompartilhados,
   DadosReuniao,
   Obreiro,
+  FaltaJustificada,
   PresencaNominal,
   RegistroCongregacao,
 } from "./types";
 
 export const MAX_QUANTIDADE = 9999;
 export const MAX_OBREIROS = 5000;
+export const TAMANHO_MAXIMO_MOTIVO = 200;
 
 export type Operacao =
   | { tipo: "criar_reuniao"; dados: DadosReuniao; substituirChamadaId: string | null }
   | { tipo: "ajustar"; chamadaId: string; congregacaoId: string; cargo: CargoId; delta: number }
   | { tipo: "definir"; chamadaId: string; congregacaoId: string; cargo: CargoId; valor: number }
   | { tipo: "marcar_presenca"; chamadaId: string; obreiroId: string; presente: boolean }
+  | { tipo: "justificar_falta"; chamadaId: string; obreiroId: string; motivo: string }
+  | { tipo: "remover_justificativa"; chamadaId: string; obreiroId: string }
   | { tipo: "finalizar"; chamadaId: string }
   | { tipo: "reabrir"; chamadaId: string }
   | { tipo: "registrar_pdf"; chamadaId: string }
@@ -71,7 +75,9 @@ export function ehOperacaoOtimista(op: Operacao): boolean {
   return (
     op.tipo === "ajustar" ||
     op.tipo === "definir" ||
-    op.tipo === "marcar_presenca"
+    op.tipo === "marcar_presenca" ||
+    op.tipo === "justificar_falta" ||
+    op.tipo === "remover_justificativa"
   );
 }
 
@@ -97,6 +103,8 @@ export function criarChamada(dados: DadosReuniao, ctx: ContextoOperacao): Chamad
     status: "em_andamento",
     congregacoes,
     presentes: {},
+    justificadas: {},
+    cadastroNoFechamento: null,
     finalizadaEm: null,
     pdfGeradoEm: null,
   };
@@ -219,16 +227,44 @@ export function aplicarOperacao(
       const c = exigirChamada(chamada, op.chamadaId);
       exigirEmAndamento(c);
       const presentes = { ...c.presentes };
+      const justificadas = { ...c.justificadas };
       if (op.presente) {
         const obreiro = obreiros.find((o) => o.id === op.obreiroId);
         if (!obreiro) {
           throw new ErroOperacao("OBREIRO_INEXISTENTE", "Este obreiro não está mais cadastrado.");
         }
         presentes[obreiro.id] = presencaDe(obreiro);
+        // Se chegou, a falta justificada deixa de existir.
+        delete justificadas[obreiro.id];
       } else {
         delete presentes[op.obreiroId];
       }
-      return comChamada({ ...c, presentes });
+      return comChamada({ ...c, presentes, justificadas });
+    }
+
+    case "justificar_falta": {
+      const c = exigirChamada(chamada, op.chamadaId);
+      exigirEmAndamento(c);
+      const obreiro = obreiros.find((o) => o.id === op.obreiroId);
+      const base = obreiro ? presencaDe(obreiro) : c.justificadas[op.obreiroId];
+      if (!base) {
+        throw new ErroOperacao("OBREIRO_INEXISTENTE", "Este obreiro não está mais cadastrado.");
+      }
+      const presentes = { ...c.presentes };
+      delete presentes[op.obreiroId]; // quem tem falta justificada não está presente
+      const falta: FaltaJustificada = {
+        ...base,
+        motivo: limparNome(op.motivo).slice(0, TAMANHO_MAXIMO_MOTIVO),
+      };
+      return comChamada({ ...c, presentes, justificadas: { ...c.justificadas, [op.obreiroId]: falta } });
+    }
+
+    case "remover_justificativa": {
+      const c = exigirChamada(chamada, op.chamadaId);
+      exigirEmAndamento(c);
+      const justificadas = { ...c.justificadas };
+      delete justificadas[op.obreiroId];
+      return comChamada({ ...c, justificadas });
     }
 
     case "finalizar": {
@@ -238,12 +274,24 @@ export function aplicarOperacao(
       if (!validacao.ok) {
         throw new ErroOperacao("TOTAIS_DIVERGENTES", validacao.erros.join(" "));
       }
-      return comChamada({ ...c, status: "finalizada", finalizadaEm: ctx.agora() });
+      // Guarda o cadastro do momento do fechamento: define quem faltou no relatório.
+      return comChamada({
+        ...c,
+        status: "finalizada",
+        finalizadaEm: ctx.agora(),
+        cadastroNoFechamento: obreiros.map((o) => ({ ...o })),
+      });
     }
 
     case "reabrir": {
       const c = exigirChamada(chamada, op.chamadaId);
-      return comChamada({ ...c, status: "em_andamento", finalizadaEm: null, pdfGeradoEm: null });
+      return comChamada({
+        ...c,
+        status: "em_andamento",
+        finalizadaEm: null,
+        pdfGeradoEm: null,
+        cadastroNoFechamento: null,
+      });
     }
 
     case "registrar_pdf": {
@@ -291,17 +339,26 @@ export function aplicarOperacao(
       lista[indice] = editado;
       // Se já está presente na chamada em andamento, atualiza os dados da presença.
       let novaChamada = chamada;
-      if (chamada && chamada.status === "em_andamento" && chamada.presentes[editado.id]) {
-        novaChamada = {
-          ...chamada,
-          presentes: { ...chamada.presentes, [editado.id]: presencaDe(editado) },
-        };
+      if (chamada && chamada.status === "em_andamento") {
+        if (chamada.presentes[editado.id]) {
+          novaChamada = {
+            ...novaChamada!,
+            presentes: { ...chamada.presentes, [editado.id]: presencaDe(editado) },
+          };
+        }
+        const falta = chamada.justificadas[editado.id];
+        if (falta) {
+          novaChamada = {
+            ...novaChamada!,
+            justificadas: { ...chamada.justificadas, [editado.id]: { ...presencaDe(editado), motivo: falta.motivo } },
+          };
+        }
       }
       return { chamada: novaChamada, obreiros: lista };
     }
 
     case "remover_obreiro": {
-      // A presença já registrada na chamada atual é mantida (a pessoa esteve presente).
+      // A presença (ou falta justificada) já registrada na chamada atual é mantida.
       return { chamada, obreiros: obreiros.filter((o) => o.id !== op.obreiroId) };
     }
   }
@@ -406,6 +463,22 @@ export function normalizarChamada(bruta: unknown): Chamada {
       };
     }
   }
+  const justificadas: Record<string, FaltaJustificada> = {};
+  if (ehObjeto(bruta.justificadas)) {
+    for (const j of Object.values(bruta.justificadas)) {
+      if (!ehObjeto(j)) continue;
+      const obreiroId = texto(j.obreiroId, 100);
+      const congregacaoId = texto(j.congregacaoId, 100);
+      if (!obreiroId || presentes[obreiroId] || !isCargoId(j.cargo) || !buscarCongregacao(congregacaoId)) continue;
+      justificadas[obreiroId] = {
+        obreiroId,
+        nome: limparNome(texto(j.nome, 200)) || "—",
+        cargo: j.cargo,
+        congregacaoId,
+        motivo: limparNome(texto(j.motivo, TAMANHO_MAXIMO_MOTIVO)),
+      };
+    }
+  }
   const status = bruta.status === "finalizada" ? "finalizada" : "em_andamento";
   return {
     reuniao: {
@@ -419,6 +492,11 @@ export function normalizarChamada(bruta: unknown): Chamada {
     status,
     congregacoes,
     presentes,
+    justificadas,
+    cadastroNoFechamento:
+      status === "finalizada" && Array.isArray(bruta.cadastroNoFechamento)
+        ? normalizarObreiros(bruta.cadastroNoFechamento)
+        : null,
     finalizadaEm: status === "finalizada" ? texto(bruta.finalizadaEm, 40) || null : null,
     pdfGeradoEm: typeof bruta.pdfGeradoEm === "string" ? bruta.pdfGeradoEm : null,
   };
@@ -466,6 +544,19 @@ export function interpretarOperacao(bruta: unknown): Operacao {
         chamadaId: exigirTexto(bruta.chamadaId, "chamadaId"),
         obreiroId: exigirTexto(bruta.obreiroId, "obreiroId"),
         presente: bruta.presente === true,
+      };
+    case "justificar_falta":
+      return {
+        tipo: "justificar_falta",
+        chamadaId: exigirTexto(bruta.chamadaId, "chamadaId"),
+        obreiroId: exigirTexto(bruta.obreiroId, "obreiroId"),
+        motivo: texto(bruta.motivo, TAMANHO_MAXIMO_MOTIVO),
+      };
+    case "remover_justificativa":
+      return {
+        tipo: "remover_justificativa",
+        chamadaId: exigirTexto(bruta.chamadaId, "chamadaId"),
+        obreiroId: exigirTexto(bruta.obreiroId, "obreiroId"),
       };
     case "finalizar":
     case "reabrir":

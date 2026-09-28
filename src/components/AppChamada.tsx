@@ -89,7 +89,7 @@ export function AppChamada() {
     async (alvo: Chamada): Promise<boolean> => {
       setModal({ tipo: "processando", texto: "Gerando o relatório em PDF..." });
       try {
-        const arquivo = await gerarRelatorioPdf(alvo);
+        const arquivo = await gerarRelatorioPdf(alvo, sync.obreiros);
         await enviar({ tipo: "registrar_pdf", chamadaId: alvo.reuniao.id });
         setModal({ tipo: "pdf_gerado", arquivo });
         return true;
@@ -106,7 +106,7 @@ export function AppChamada() {
         return false;
       }
     },
-    [enviar],
+    [enviar, sync.obreiros],
   );
 
   const finalizarEGerarPdf = useCallback(async (): Promise<boolean> => {

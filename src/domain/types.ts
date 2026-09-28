@@ -23,6 +23,12 @@ export interface PresencaNominal {
   congregacaoId: string;
 }
 
+/** Falta justificada registrada na chamada (cópia dos dados do obreiro + motivo). */
+export interface FaltaJustificada extends PresencaNominal {
+  /** Motivo informado (pode ficar vazio). */
+  motivo: string;
+}
+
 export interface RegistroCongregacao {
   /** Presentes NÃO cadastrados (visitantes/novos), contados por quantidade. */
   avulsos: Contagem;
@@ -51,6 +57,13 @@ export interface Chamada {
   congregacoes: Record<string, RegistroCongregacao>;
   /** Obreiros cadastrados marcados como presentes, por id do obreiro. */
   presentes: Record<string, PresencaNominal>;
+  /** Faltas justificadas, por id do obreiro. */
+  justificadas: Record<string, FaltaJustificada>;
+  /**
+   * Cópia do cadastro no momento em que a chamada foi finalizada. Define quem
+   * faltou no relatório, mesmo que o cadastro mude depois. null = em andamento.
+   */
+  cadastroNoFechamento: Obreiro[] | null;
   finalizadaEm: string | null;
   /** Momento em que o PDF foi gerado pela última vez (null = ainda não gerado). */
   pdfGeradoEm: string | null;

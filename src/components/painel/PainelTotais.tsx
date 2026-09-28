@@ -6,7 +6,7 @@
  */
 import { useMemo, useState } from "react";
 import { CARGOS, CARGOS_HIERARQUIA, type CargoId } from "@/domain/cargos";
-import { calcularResumo } from "@/domain/calculos";
+import { calcularFaltas, calcularResumo } from "@/domain/calculos";
 import { formatarData } from "@/domain/formatacao";
 import { useChamadaSincronizada } from "@/hooks/useChamadaSincronizada";
 import { FaixaLogo } from "@/components/ui/FaixaLogo";
@@ -21,8 +21,9 @@ const CORES_CARGO: Record<CargoId, string> = {
 };
 
 export function PainelTotais() {
-  const { pronto, chamada, conexao } = useChamadaSincronizada();
+  const { pronto, chamada, obreiros, conexao } = useChamadaSincronizada();
   const resumo = useMemo(() => (chamada ? calcularResumo(chamada) : null), [chamada]);
+  const faltas = useMemo(() => (chamada ? calcularFaltas(chamada, obreiros) : null), [chamada, obreiros]);
   const [mostrarCongregacoes, setMostrarCongregacoes] = useState(true);
 
   const telaCheia = () => {
@@ -113,6 +114,10 @@ export function PainelTotais() {
             <span className="font-bold text-emerald-700">{resumo.percentualComPresenca}%</span>
             <span className="text-slate-500">{resumo.cadastradas - resumo.comPresenca} sem presentes</span>
           </div>
+          <p className="mt-4 border-t border-slate-100 pt-3 text-base text-slate-600 sm:text-lg">
+            Faltas justificadas:{" "}
+            <strong className="tabular text-amber-700">{faltas?.justificadas.length ?? 0}</strong>
+          </p>
         </div>
       </section>
 

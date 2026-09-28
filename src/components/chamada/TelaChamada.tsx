@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { CargoId } from "@/domain/cargos";
-import { calcularResumo } from "@/domain/calculos";
+import { calcularFaltas, calcularResumo, type FaltasCongregacao } from "@/domain/calculos";
 import { CONGREGACOES } from "@/domain/congregacoes";
 import { formatarData, formatarDataHora } from "@/domain/formatacao";
 import type { Operacao } from "@/domain/operacoes";
@@ -14,6 +14,7 @@ import { CardCongregacao } from "./CardCongregacao";
 import { PainelResumo } from "./PainelResumo";
 
 const SEM_OBREIROS: Obreiro[] = [];
+const SEM_FALTAS: FaltasCongregacao = { justificadas: [], semJustificativa: [] };
 
 interface TelaChamadaProps {
   chamada: Chamada;
@@ -44,6 +45,7 @@ export function TelaChamada({
   const [abertas, setAbertas] = useState<Set<string>>(() => new Set());
 
   const resumo = useMemo(() => calcularResumo(chamada), [chamada]);
+  const faltas = useMemo(() => calcularFaltas(chamada, obreiros), [chamada, obreiros]);
   const finalizada = chamada.status === "finalizada";
   const chamadaId = chamada.reuniao.id;
   const { reuniao } = chamada;
@@ -96,6 +98,15 @@ export function TelaChamada({
       return null;
     },
     [enviar, enviarAguardando, chamadaId],
+  );
+  const justificar = useCallback(
+    (obreiroId: string, motivo: string) =>
+      enviar({ tipo: "justificar_falta", chamadaId, obreiroId, motivo }),
+    [enviar, chamadaId],
+  );
+  const removerJustificativa = useCallback(
+    (obreiroId: string) => enviar({ tipo: "remover_justificativa", chamadaId, obreiroId }),
+    [enviar, chamadaId],
   );
   const marcarPresenca = useCallback(
     (obreiroId: string, presente: boolean) =>
@@ -185,7 +196,7 @@ export function TelaChamada({
           </div>
         )}
 
-        <PainelResumo resumo={resumo} />
+        <PainelResumo resumo={resumo} faltasJustificadas={faltas.justificadas.length} />
 
         <div className="flex min-h-10 items-center justify-between gap-2">
           <h2 className="text-sm font-bold tracking-widest text-slate-500 uppercase">Congregações</h2>
@@ -211,6 +222,9 @@ export function TelaChamada({
                 aoAlternar={alternar}
                 aoMarcarPresenca={marcarPresenca}
                 aoCadastrarPresente={cadastrarPresente}
+                faltas={faltas.porCongregacao.get(c.id) ?? SEM_FALTAS}
+                aoJustificar={justificar}
+                aoRemoverJustificativa={removerJustificativa}
                 aoAjustar={ajustar}
                 aoDefinir={definir}
               />

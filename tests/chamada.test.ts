@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CARGOS_HIERARQUIA } from "@/domain/cargos";
-import { calcularResumo, validarChamada } from "@/domain/calculos";
+import { calcularFaltas, calcularResumo, validarChamada } from "@/domain/calculos";
 import { CONGREGACOES, filtrarCongregacoes } from "@/domain/congregacoes";
 import { nomeArquivoPdf } from "@/domain/formatacao";
 import {
@@ -289,5 +289,76 @@ describe("chamada", () => {
 
   it("nome do arquivo PDF", () => {
     expect(nomeArquivoPdf("2026-09-27")).toBe("reuniao-obreiros-27-09-2026.pdf");
+  });
+});
+
+describe("faltas justificadas", () => {
+  const presenca = (d: DadosCompartilhados, o: Obreiro, presente = true): Operacao => ({
+    tipo: "marcar_presenca",
+    chamadaId: id(d),
+    obreiroId: o.id,
+    presente,
+  });
+
+  it("separa presentes, faltas justificadas e faltas sem justificativa", () => {
+    let d = novaReuniao(cadastrar(VAZIO, [PEDRO, ANA, ERICA, BRUNO]));
+    d = aplicar(d, [
+      presenca(d, PEDRO),
+      { tipo: "justificar_falta", chamadaId: id(d), obreiroId: ANA.id, motivo: "Doença" },
+    ]);
+    const f = calcularFaltas(d.chamada!, d.obreiros);
+    expect(f.cadastrados).toBe(4);
+    expect(f.justificadas.map((j) => [j.nome, j.motivo])).toEqual([["Ana Costa", "Doença"]]);
+    // ordem alfabética: Bruno, Érica
+    expect(f.semJustificativa.map((p) => p.nome)).toEqual(["Bruno Lima", "Érica Martins"]);
+    expect(f.porCongregacao.get("sede")!.justificadas).toHaveLength(1);
+    expect(f.porCongregacao.get("campestre")!.semJustificativa).toHaveLength(2);
+    // falta justificada não conta como presença
+    expect(calcularResumo(d.chamada!).totalGeral).toBe(1);
+  });
+
+  it("marcar presente remove a justificativa, e justificar remove a presença", () => {
+    let d = novaReuniao(cadastrar(VAZIO, [ANA]));
+    d = aplicar(d, [{ tipo: "justificar_falta", chamadaId: id(d), obreiroId: ANA.id, motivo: "" }]);
+    d = aplicar(d, [presenca(d, ANA)]);
+    expect(d.chamada!.justificadas[ANA.id]).toBeUndefined();
+    expect(d.chamada!.presentes[ANA.id]).toBeDefined();
+    d = aplicar(d, [{ tipo: "justificar_falta", chamadaId: id(d), obreiroId: ANA.id, motivo: "Viagem" }]);
+    expect(d.chamada!.presentes[ANA.id]).toBeUndefined();
+    expect(d.chamada!.justificadas[ANA.id].motivo).toBe("Viagem");
+  });
+
+  it("desfazer justificativa volta para falta sem justificativa", () => {
+    let d = novaReuniao(cadastrar(VAZIO, [ANA]));
+    d = aplicar(d, [
+      { tipo: "justificar_falta", chamadaId: id(d), obreiroId: ANA.id, motivo: "Trabalho" },
+      { tipo: "remover_justificativa", chamadaId: id(d), obreiroId: ANA.id },
+    ]);
+    const f = calcularFaltas(d.chamada!, d.obreiros);
+    expect(f.justificadas).toHaveLength(0);
+    expect(f.semJustificativa.map((p) => p.nome)).toEqual(["Ana Costa"]);
+  });
+
+  it("nova reunião começa sem nenhuma justificativa", () => {
+    let d = novaReuniao(cadastrar(VAZIO, [ANA]));
+    d = aplicar(d, [{ tipo: "justificar_falta", chamadaId: id(d), obreiroId: ANA.id, motivo: "Doença" }]);
+    d = novaReuniao(d, "2026-10-25");
+    expect(d.chamada!.justificadas).toEqual({});
+  });
+
+  it("relatório de chamada finalizada usa o cadastro do momento do fechamento", () => {
+    let d = novaReuniao(cadastrar(VAZIO, [ANA]));
+    d = aplicar(d, [{ tipo: "finalizar", chamadaId: id(d) }]);
+    d = cadastrar(d, [PEDRO]); // cadastrado depois de finalizar
+    const f = calcularFaltas(d.chamada!, d.obreiros);
+    expect(f.semJustificativa.map((p) => p.nome)).toEqual(["Ana Costa"]);
+  });
+
+  it("não permite justificar com a chamada finalizada", () => {
+    let d = novaReuniao(cadastrar(VAZIO, [ANA]));
+    d = aplicar(d, [{ tipo: "finalizar", chamadaId: id(d) }]);
+    expect(() =>
+      aplicar(d, [{ tipo: "justificar_falta", chamadaId: id(d), obreiroId: ANA.id, motivo: "" }]),
+    ).toThrow(ErroOperacao);
   });
 });

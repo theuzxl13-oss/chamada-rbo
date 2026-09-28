@@ -4,7 +4,13 @@ import { CARGOS, CARGOS_HIERARQUIA } from "@/domain/cargos";
 import type { ResumoChamada } from "@/domain/calculos";
 
 /** Total geral + totais por cargo + congregações com presença. */
-export function PainelResumo({ resumo }: { resumo: ResumoChamada }) {
+export function PainelResumo({
+  resumo,
+  faltasJustificadas = 0,
+}: {
+  resumo: ResumoChamada;
+  faltasJustificadas?: number;
+}) {
   return (
     <div className="grid gap-3 md:grid-cols-[1.1fr_1fr]">
       <div className="rounded-2xl bg-marca-700 p-4 text-white shadow-sm sm:p-5">
@@ -29,12 +35,18 @@ export function PainelResumo({ resumo }: { resumo: ResumoChamada }) {
         </div>
       </div>
 
-      <ProgressoChamada resumo={resumo} />
+      <ProgressoChamada resumo={resumo} faltasJustificadas={faltasJustificadas} />
     </div>
   );
 }
 
-export function ProgressoChamada({ resumo }: { resumo: ResumoChamada }) {
+export function ProgressoChamada({
+  resumo,
+  faltasJustificadas = 0,
+}: {
+  resumo: ResumoChamada;
+  faltasJustificadas?: number;
+}) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
       <p className="text-xs font-bold tracking-widest text-slate-500 uppercase">
@@ -62,6 +74,9 @@ export function ProgressoChamada({ resumo }: { resumo: ResumoChamada }) {
           {resumo.cadastradas - resumo.comPresenca} sem presentes
         </span>
       </div>
+      <p className="mt-3 border-t border-slate-100 pt-2 text-sm text-slate-600">
+        Faltas justificadas: <strong className="tabular text-amber-700">{faltasJustificadas}</strong>
+      </p>
       {!resumo.consistente && (
         <p className="mt-3 rounded-lg bg-red-50 p-2 text-sm font-semibold text-red-700">
           Atenção: divergência nos totais ({resumo.totalPorCargos} × {resumo.totalPorCongregacoes}).
