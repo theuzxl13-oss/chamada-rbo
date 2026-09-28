@@ -131,9 +131,9 @@ export function TelaChamada({
             <p className="text-xs text-slate-500">{formatarData(reuniao.data)}</p>
           </div>
           <div className="text-right leading-tight">
-            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">Com presença</p>
+            <p className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">Obreiros</p>
             <p className="tabular text-base font-bold text-slate-700">
-              {resumo.comPresenca}/{resumo.cadastradas}
+              {faltas.obreirosPresentes}/{faltas.totalObreiros}
             </p>
           </div>
           <a
@@ -196,7 +196,7 @@ export function TelaChamada({
           </div>
         )}
 
-        <PainelResumo resumo={resumo} faltasJustificadas={faltas.justificadas.length} />
+        <PainelResumo resumo={resumo} faltas={faltas} />
 
         <div className="flex min-h-10 items-center justify-between gap-2">
           <h2 className="text-sm font-bold tracking-widest text-slate-500 uppercase">Congregações</h2>

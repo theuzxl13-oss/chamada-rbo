@@ -331,7 +331,7 @@ export async function montarRelatorioPdf(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.text(
-    `Congregações com presença: ${resumo.comPresenca} de ${resumo.cadastradas}`,
+    `Obreiros presentes: ${faltas.obreirosPresentes} de ${faltas.totalObreiros}   ·   Congregações com presença: ${resumo.comPresenca} de ${resumo.cadastradas}`,
     MARGEM + 8,
     y + 17,
   );
@@ -490,6 +490,7 @@ export async function montarRelatorioPdf(
       ["Congregações sem presentes", resumo.cadastradas - resumo.comPresenca],
       ["Congregações com presença", resumo.comPresenca],
       ["Obreiros cadastrados", faltas.cadastrados],
+      ["Obreiros presentes", ` de  (%)`],
       ["Presentes cadastrados (por nome)", resumo.totalCadastradosPresentes],
       ["Presentes não cadastrados", resumo.totalAvulsos],
       ["Faltas justificadas", faltas.justificadas.length],

@@ -150,6 +150,12 @@ export interface FaltasCongregacao {
 export interface ResumoFaltas {
   /** Obreiros cadastrados considerados na chamada. */
   cadastrados: number;
+  /** Obreiros esperados = presentes + faltas justificadas + faltas sem justificativa. */
+  totalObreiros: number;
+  /** Obreiros cadastrados marcados como presentes. */
+  obreirosPresentes: number;
+  /** Percentual de obreiros presentes (0–100). */
+  percentualObreiros: number;
   porCongregacao: Map<string, FaltasCongregacao>;
   /** Todas as faltas justificadas, em ordem alfabética. */
   justificadas: (FaltaJustificada & { congregacaoNome: string })[];
@@ -193,8 +199,14 @@ export function calcularFaltas(chamada: Chamada, obreirosAtuais: Obreiro[]): Res
 
   const nomeCong = (id: string) => buscarCongregacao(id)?.nome ?? "—";
   const todas = [...porCongregacao.values()];
+  const obreirosPresentes = Object.keys(chamada.presentes).length;
+  const totalObreiros =
+    obreirosPresentes + todas.reduce((s, g) => s + g.justificadas.length + g.semJustificativa.length, 0);
   return {
     cadastrados: base.length,
+    totalObreiros,
+    obreirosPresentes,
+    percentualObreiros: totalObreiros ? Math.round((obreirosPresentes / totalObreiros) * 100) : 0,
     porCongregacao,
     justificadas: todas
       .flatMap((g) => g.justificadas)

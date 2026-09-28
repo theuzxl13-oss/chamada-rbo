@@ -98,6 +98,21 @@ export function PainelTotais() {
 
         <div className="flex flex-col justify-center rounded-3xl border border-slate-200 bg-white px-6 py-6 shadow-sm sm:px-8">
           <p className="text-sm font-bold tracking-[0.2em] text-slate-500 uppercase sm:text-base">
+            Obreiros presentes
+          </p>
+          <p className="mt-1 text-5xl font-extrabold text-slate-900 sm:text-6xl">
+            <span className="tabular">{faltas?.obreirosPresentes ?? 0}</span>
+            <span className="text-2xl font-semibold text-slate-400 sm:text-3xl"> / {faltas?.totalObreiros ?? 0}</span>
+          </p>
+          <div className="mt-4 h-5 w-full overflow-hidden rounded-full bg-slate-200">
+            <div
+              className="h-full rounded-full bg-marca-700 transition-[width] duration-500"
+              style={{ width: `${faltas?.percentualObreiros ?? 0}%` }}
+            />
+          </div>
+          <p className="mt-2 mb-5 text-base font-bold text-slate-800 sm:text-lg">{faltas?.percentualObreiros ?? 0}%</p>
+
+          <p className="border-t border-slate-100 pt-4 text-sm font-bold tracking-[0.2em] text-slate-500 uppercase sm:text-base">
             Congregações com presença
           </p>
           <p className="mt-1 text-5xl font-extrabold text-slate-900 sm:text-6xl">

@@ -1,8 +1,8 @@
 "use client";
 
-import { calcularResumo } from "@/domain/calculos";
+import { calcularFaltas, calcularResumo } from "@/domain/calculos";
 import { formatarData } from "@/domain/formatacao";
-import type { Chamada } from "@/domain/types";
+import type { Chamada, Obreiro } from "@/domain/types";
 import { Botao } from "@/components/ui/Botao";
 
 interface TelaInicialProps {
@@ -10,6 +10,7 @@ interface TelaInicialProps {
   chamada: Chamada | null;
   backup: Chamada | null;
   totalObreiros: number;
+  obreiros: Obreiro[];
   aoCadastro: () => void;
   aoNovaReuniao: () => void;
   aoContinuar: () => void;
@@ -23,6 +24,7 @@ export function TelaInicial({
   chamada,
   backup,
   totalObreiros,
+  obreiros,
   aoCadastro,
   aoNovaReuniao,
   aoContinuar,
@@ -31,6 +33,7 @@ export function TelaInicial({
   aoDescartarBackup,
 }: TelaInicialProps) {
   const resumo = chamada ? calcularResumo(chamada) : null;
+  const faltas = chamada ? calcularFaltas(chamada, obreiros) : null;
   const resumoBackup = !chamada && backup ? calcularResumo(backup) : null;
 
   return (
@@ -66,9 +69,9 @@ export function TelaInicial({
               <dd className="tabular text-2xl font-extrabold text-slate-900">{resumo.totalGeral}</dd>
             </div>
             <div className="rounded-xl bg-slate-50 p-3">
-              <dt className="text-xs font-semibold text-slate-500 uppercase">Com presença</dt>
+              <dt className="text-xs font-semibold text-slate-500 uppercase">Obreiros presentes</dt>
               <dd className="tabular text-2xl font-extrabold text-slate-900">
-                {resumo.comPresenca}/{resumo.cadastradas}
+                {faltas?.obreirosPresentes ?? 0}/{faltas?.totalObreiros ?? 0}
               </dd>
             </div>
           </dl>

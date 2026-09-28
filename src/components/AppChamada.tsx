@@ -235,6 +235,7 @@ export function AppChamada() {
           chamada={chamada}
           backup={sync.backup}
           totalObreiros={sync.obreiros.length}
+          obreiros={sync.obreiros}
           aoCadastro={() => setTela("cadastro")}
           aoNovaReuniao={() => pedirEncerramento("nova")}
           aoContinuar={() => setTela("chamada")}

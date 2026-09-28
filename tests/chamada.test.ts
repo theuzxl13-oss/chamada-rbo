@@ -362,3 +362,26 @@ describe("faltas justificadas", () => {
     ).toThrow(ErroOperacao);
   });
 });
+
+describe("contador de obreiros presentes", () => {
+  it("mostra X de N, onde N é o total de obreiros cadastrados", () => {
+    let d = novaReuniao(cadastrar(VAZIO, [PEDRO, ANA, ERICA, BRUNO]));
+    let f = calcularFaltas(d.chamada!, d.obreiros);
+    expect([f.obreirosPresentes, f.totalObreiros, f.percentualObreiros]).toEqual([0, 4, 0]);
+
+    d = aplicar(d, [
+      { tipo: "marcar_presenca", chamadaId: id(d), obreiroId: PEDRO.id, presente: true },
+      { tipo: "marcar_presenca", chamadaId: id(d), obreiroId: ERICA.id, presente: true },
+      { tipo: "justificar_falta", chamadaId: id(d), obreiroId: ANA.id, motivo: "" },
+    ]);
+    f = calcularFaltas(d.chamada!, d.obreiros);
+    // falta justificada continua no total, mas não conta como presente
+    expect([f.obreirosPresentes, f.totalObreiros, f.percentualObreiros]).toEqual([2, 4, 50]);
+
+    // quem é cadastrado na hora entra no total e nos presentes
+    d = cadastrar(d, [{ id: "novo", nome: "Carlos Novo", cargo: "membro", congregacaoId: "cipo" }]);
+    d = aplicar(d, [{ tipo: "marcar_presenca", chamadaId: id(d), obreiroId: "novo", presente: true }]);
+    f = calcularFaltas(d.chamada!, d.obreiros);
+    expect([f.obreirosPresentes, f.totalObreiros]).toEqual([3, 5]);
+  });
+});
