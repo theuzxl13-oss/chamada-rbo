@@ -34,8 +34,5 @@ Thumbs.db
 # PDFs gerados localmente
 *.pdf
 
-# configuração local do editor/assistente
-/.claude/
-
 # arquivo original da logo (as versões usadas ficam em public/)
 /logo.png.jpeg
