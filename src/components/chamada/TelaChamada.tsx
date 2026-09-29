@@ -3,7 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import type { CargoId } from "@/domain/cargos";
 import { calcularFaltas, calcularResumo, type FaltasCongregacao } from "@/domain/calculos";
-import { CONGREGACOES } from "@/domain/congregacoes";
+import { filtrarCongregacoes } from "@/domain/congregacoes";
 import { formatarData, formatarDataHora } from "@/domain/formatacao";
 import type { Operacao } from "@/domain/operacoes";
 import type { Chamada, Obreiro } from "@/domain/types";
@@ -43,6 +43,8 @@ export function TelaChamada({
   aoNovaReuniao,
 }: TelaChamadaProps) {
   const [abertas, setAbertas] = useState<Set<string>>(() => new Set());
+  const [buscaCongregacao, setBuscaCongregacao] = useState("");
+  const congregacoesVisiveis = useMemo(() => filtrarCongregacoes(buscaCongregacao), [buscaCongregacao]);
 
   const resumo = useMemo(() => calcularResumo(chamada), [chamada]);
   const faltas = useMemo(() => calcularFaltas(chamada, obreiros), [chamada, obreiros]);
@@ -211,8 +213,29 @@ export function TelaChamada({
           )}
         </div>
 
+        <div className="relative">
+          <span aria-hidden className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-lg">
+            🔎
+          </span>
+          <input
+            type="search"
+            value={buscaCongregacao}
+            onChange={(e) => setBuscaCongregacao(e.target.value)}
+            placeholder="Buscar congregação"
+            aria-label="Buscar congregação"
+            autoComplete="off"
+            className="h-13 w-full rounded-2xl border border-slate-300 bg-white pr-4 pl-12 text-base shadow-sm focus:border-marca-600 focus:ring-2 focus:ring-marca-100 focus:outline-none"
+          />
+        </div>
+
+        {congregacoesVisiveis.length === 0 && (
+          <p className="rounded-2xl bg-white p-6 text-center text-slate-500">
+            Nenhuma congregação encontrada com &quot;{buscaCongregacao}&quot;.
+          </p>
+        )}
+
         <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {CONGREGACOES.map((c) => (
+            {congregacoesVisiveis.map((c) => (
               <CardCongregacao
                 key={c.id}
                 linha={linhasPorId.get(c.id)!}
