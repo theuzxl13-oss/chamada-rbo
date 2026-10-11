@@ -1,5 +1,7 @@
 "use client";
 
+import { useAcesso } from "@/components/PerfilContexto";
+import { podeIniciarNovaReuniao } from "@/domain/permissoes";
 import { useCallback, useMemo, useState } from "react";
 import type { CargoId } from "@/domain/cargos";
 import { calcularFaltas, calcularResumo, type FaltasCongregacao } from "@/domain/calculos";
@@ -42,6 +44,7 @@ export function TelaChamada({
   aoReabrir,
   aoNovaReuniao,
 }: TelaChamadaProps) {
+  const { perfil } = useAcesso();
   const [abertas, setAbertas] = useState<Set<string>>(() => new Set());
   const [buscaCongregacao, setBuscaCongregacao] = useState("");
   const congregacoesVisiveis = useMemo(() => filtrarCongregacoes(buscaCongregacao), [buscaCongregacao]);
@@ -182,18 +185,22 @@ export function TelaChamada({
               {chamada.pdfGeradoEm
                 ? `Relatório gerado em ${formatarDataHora(chamada.pdfGeradoEm)}.`
                 : "O relatório em PDF ainda não foi baixado."}{" "}
-              Os valores estão travados. Para corrigir, reabra a chamada.
+              Os valores estão travados. Para corrigir, o administrador pode reabrir a chamada.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Botao variante="sucesso" onClick={aoBaixarPdf}>
                 Baixar PDF
               </Botao>
-              <Botao variante="secundario" onClick={aoReabrir}>
-                Reabrir chamada
-              </Botao>
-              <Botao variante="primario" onClick={aoNovaReuniao}>
-                + Nova reunião
-              </Botao>
+              {perfil === "ADMIN" && (
+                <Botao variante="secundario" onClick={aoReabrir}>
+                  Reabrir chamada
+                </Botao>
+              )}
+              {podeIniciarNovaReuniao(perfil, chamada) && (
+                <Botao variante="primario" onClick={aoNovaReuniao}>
+                  + Nova reunião
+                </Botao>
+              )}
             </div>
           </div>
         )}

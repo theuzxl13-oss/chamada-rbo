@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { ErroOperacao, interpretarOperacao } from "@/domain/operacoes";
 import { obterServico } from "@/server/servico";
+import { motivoRecusa } from "@/domain/permissoes";
+import { perfilAtual } from "@/server/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,7 +42,12 @@ export async function POST(request: Request) {
   try {
     if (!opId) throw new ErroOperacao("DADOS_INVALIDOS", "Operação sem identificador.");
     const op = interpretarOperacao((corpo as { op?: unknown }).op);
-    const estado = await obterServico().executar(opId, op);
+    const perfil = await perfilAtual();
+    if (!perfil) {
+      return NextResponse.json({ ok: false, codigo: "SEM_LOGIN", erro: "Sessão expirada. Entre novamente." }, { status: 401 });
+    }
+    // Permissão por perfil, conferida no servidor sobre o estado mais recente.
+    const estado = await obterServico().executar(opId, op, (chamada) => motivoRecusa(perfil, op, chamada));
     return NextResponse.json({ ok: true, estado });
   } catch (erro) {
     // Devolve o estado atual (quando disponível) para o aparelho se corrigir.
@@ -50,7 +57,7 @@ export async function POST(request: Request) {
     if (erro instanceof ErroOperacao) {
       return NextResponse.json(
         { ok: false, codigo: erro.codigo, erro: erro.message, estado },
-        { status: 409 },
+        { status: erro.codigo === "SEM_PERMISSAO" ? 403 : 409 },
       );
     }
     console.error("[chamada] Erro inesperado:", erro);

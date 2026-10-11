@@ -4,6 +4,8 @@ import { calcularFaltas, calcularResumo } from "@/domain/calculos";
 import { formatarData } from "@/domain/formatacao";
 import type { Chamada, Obreiro } from "@/domain/types";
 import { Botao } from "@/components/ui/Botao";
+import { useAcesso } from "@/components/PerfilContexto";
+import { podeIniciarNovaReuniao } from "@/domain/permissoes";
 
 interface TelaInicialProps {
   pronto: boolean;
@@ -32,6 +34,9 @@ export function TelaInicial({
   aoRestaurarBackup,
   aoDescartarBackup,
 }: TelaInicialProps) {
+  const { perfil } = useAcesso();
+  const admin = perfil === "ADMIN";
+  const podeNova = podeIniciarNovaReuniao(perfil, chamada);
   const resumo = chamada ? calcularResumo(chamada) : null;
   const faltas = chamada ? calcularFaltas(chamada, obreiros) : null;
   const resumoBackup = !chamada && backup ? calcularResumo(backup) : null;
@@ -82,14 +87,25 @@ export function TelaInicial({
             <Botao grande onClick={aoContinuar}>
               {chamada.status === "finalizada" ? "ABRIR CHAMADA" : "CONTINUAR CHAMADA"}
             </Botao>
-            <div className="grid grid-cols-2 gap-2">
-              <Botao variante="secundario" onClick={aoNovaReuniao}>
-                + Nova reunião
-              </Botao>
-              <Botao variante="fantasma" className="text-red-700" onClick={aoDescartar}>
-                Descartar
-              </Botao>
-            </div>
+            {(podeNova || admin) && (
+              <div className={`grid gap-2 ${podeNova && admin ? "grid-cols-2" : "grid-cols-1"}`}>
+                {podeNova && (
+                  <Botao variante="secundario" onClick={aoNovaReuniao}>
+                    + Nova reunião
+                  </Botao>
+                )}
+                {admin && (
+                  <Botao variante="fantasma" className="text-red-700" onClick={aoDescartar}>
+                    Descartar
+                  </Botao>
+                )}
+              </div>
+            )}
+            {!podeNova && (
+              <p className="text-center text-xs text-slate-500">
+                Uma nova reunião pode ser iniciada depois que esta chamada for finalizada e o PDF gerado.
+              </p>
+            )}
           </div>
         </section>
       )}

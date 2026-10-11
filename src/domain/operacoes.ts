@@ -45,6 +45,7 @@ export type Operacao =
   | { tipo: "remover_obreiro"; obreiroId: string };
 
 export type CodigoErro =
+  | "SEM_PERMISSAO"
   | "SEM_CHAMADA"
   | "CHAMADA_DIFERENTE"
   | "CHAMADA_FINALIZADA"

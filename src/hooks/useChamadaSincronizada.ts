@@ -67,6 +67,7 @@ export function useChamadaSincronizada() {
   const buscarEstado = useCallback(async () => {
     try {
       const resp = await fetch(URL_ESTADO, { cache: "no-store" });
+      if (resp.status === 401) return irParaLogin();
       if (!resp.ok) throw new Error(String(resp.status));
       aceitarEstado((await resp.json()) as EstadoCompartilhado);
       setConexao("online");
@@ -190,6 +191,7 @@ export function useChamadaSincronizada() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ id: item.id, op: item.op }),
             });
+            if (resp.status === 401) irParaLogin();
             const json = (await resp.json()) as {
               ok: boolean;
               erro?: string;
@@ -307,3 +309,10 @@ export function useChamadaSincronizada() {
 }
 
 export type ChamadaSincronizada = ReturnType<typeof useChamadaSincronizada>;
+
+/** Sessão expirada: volta para a tela de login. */
+function irParaLogin(): void {
+  if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+    window.location.href = `/login?voltar=${encodeURIComponent(window.location.pathname)}`;
+  }
+}

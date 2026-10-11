@@ -1,0 +1,32 @@
+# Evita que o Supabase gratuito pause o projeto (ele pausa após 7 dias sem uso).
+# A cada 2 dias, o GitHub faz uma leitura simples no banco.
+#
+# Configuração (uma vez): GitHub → repositório → Settings → Secrets and variables → Actions
+#   SUPABASE_URL       = Project URL (ex.: https://abcdefgh.supabase.co)
+#   SUPABASE_ANON_KEY  = chave anon / public
+name: Manter Supabase ativo
+
+on:
+  schedule:
+    - cron: "17 11 */2 * *" # a cada 2 dias, 08:17 (horário de Brasília)
+  workflow_dispatch: {} # permite rodar manualmente em Actions → Run workflow
+
+jobs:
+  acessar-banco:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Leitura no banco
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "Configure os secrets SUPABASE_URL e SUPABASE_ANON_KEY no GitHub."
+            exit 1
+          fi
+          curl -fsS --retry 3 --retry-delay 20 \
+            "$SUPABASE_URL/rest/v1/estado_compartilhado?select=versao&id=eq.1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY"
+          echo
+          echo "Banco acessado com sucesso."

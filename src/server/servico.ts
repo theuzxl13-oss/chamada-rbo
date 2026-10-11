@@ -43,10 +43,17 @@ export class ServicoChamada {
    * de rede), não aplica de novo — apenas devolve o estado atual.
    * Lança `ErroOperacao` quando a operação não é permitida.
    */
-  async executar(opId: string, op: Operacao): Promise<EstadoCompartilhado> {
+  async executar(
+    opId: string,
+    op: Operacao,
+    /** Confere a permissão sobre o estado mais recente; devolve a mensagem de recusa ou null. */
+    autorizar?: (chamada: EstadoCompartilhado["chamada"]) => string | null,
+  ): Promise<EstadoCompartilhado> {
     for (let tentativa = 0; tentativa < TENTATIVAS_CONFLITO; tentativa++) {
       const atual = this.publico(await this.repositorio.ler());
       if (atual.opsAplicadas.includes(opId)) return atual;
+      const recusa = autorizar?.(atual.chamada);
+      if (recusa) throw new ErroOperacao("SEM_PERMISSAO", recusa);
 
       const resultado = aplicarOperacao(atual, op, contexto);
       const anterior = atual.chamada;

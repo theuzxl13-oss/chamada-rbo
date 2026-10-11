@@ -20,3 +20,14 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      # Logins (veja o README, seção "Logins e permissões")
+      - key: ADMIN_USUARIO
+        sync: false
+      - key: ADMIN_SENHA
+        sync: false
+      - key: ADMIN_NOME
+        sync: false
+      - key: PRESENCA_USUARIO
+        sync: false
+      - key: PRESENCA_SENHA
+        sync: false

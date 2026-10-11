@@ -147,11 +147,56 @@ Atualizações: a cada `git push`, o Render publica a nova versão sozinho.
 > depois disso leva cerca de 1 minuto. Abra o link alguns minutos antes da reunião.
 > Durante a chamada, com uso contínuo, ele fica rápido. Os dados não se perdem (ficam no Supabase).
 
-> ⚠️ **Acesso:** o sistema não tem senha. Qualquer pessoa com o link consegue ver e alterar a chamada
-> e o cadastro. Compartilhe o link só com a equipe da chamada.
-> A chave `service_role` nunca vai para o navegador nem para o GitHub.
+> 🔒 **Acesso:** o sistema exige login (veja a seção 9). A chave `service_role` nunca vai para o
+> navegador nem para o GitHub.
 
 ---
+
+## 9. Logins e permissões
+
+Há dois logins, definidos no Render em **serviço → Environment**:
+
+| Variável | Exemplo | Para quê |
+|---|---|---|
+| `ADMIN_USUARIO` | `hugo` | Usuário do administrador |
+| `ADMIN_SENHA` | (senha forte) | Senha do administrador |
+| `ADMIN_NOME` | `Hugo` | Nome exibido no topo da tela |
+| `PRESENCA_USUARIO` | `presenca` | Usuário das demais pessoas |
+| `PRESENCA_SENHA` | (senha) | Senha das demais pessoas |
+
+| Ação | Administrador | Presença |
+|---|---|---|
+| Marcar presença, contar não cadastrados, justificar faltas | ✅ | ✅ |
+| Cadastrar novos obreiros | ✅ | ✅ |
+| Finalizar chamada e gerar PDF | ✅ | ✅ |
+| Painel de totais (TV) | ✅ | ✅ |
+| Iniciar nova reunião | ✅ | ✅ somente depois que a chamada atual foi finalizada **e** o PDF gerado |
+| Descartar chamada, reabrir chamada | ✅ | ❌ |
+| Editar ou excluir obreiros do cadastro | ✅ | ❌ |
+
+- As permissões são conferidas **no servidor**: esconder os botões é só conveniência.
+- O login fica salvo no aparelho por 30 dias (o botão **Sair** fica no topo da tela).
+- Para trocar uma senha, altere a variável no Render. Todos os aparelhos precisarão entrar de novo.
+- Sem `ADMIN_SENHA`, o sistema funciona sem login apenas no computador local; no Render ele fica bloqueado
+  até a variável ser criada.
+
+---
+## 10. Evitar que o Supabase pause
+
+O Supabase gratuito **pausa o projeto após 7 dias sem uso**. Quando isso acontece, o sistema mostra
+"Sem conexão com o servidor" e é preciso entrar em supabase.com e clicar em **Resume project**.
+
+Para evitar, o repositório tem uma tarefa automática
+([`.github/workflows/manter-supabase-ativo.yml`](.github/workflows/manter-supabase-ativo.yml))
+que acessa o banco a cada 2 dias. Para ativá-la, uma única vez:
+
+1. GitHub → este repositório → **Settings → Secrets and variables → Actions → New repository secret**.
+2. Crie `SUPABASE_URL` (Project URL) e `SUPABASE_ANON_KEY` (chave anon), os mesmos valores do Render.
+3. Em **Actions → Manter Supabase ativo → Run workflow**, rode uma vez para testar (deve ficar verde ✅).
+
+> O GitHub desativa tarefas agendadas de repositórios sem nenhuma alteração por 60 dias; nesse caso,
+> ele envia um e-mail e basta clicar em **Enable workflow** na aba Actions.
+
 ## Estrutura do projeto
 
 ```
